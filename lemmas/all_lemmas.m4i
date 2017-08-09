@@ -1,0 +1,20 @@
+define(<!lemma_nonce_secret_initiator!>,<!
+lemma nonce_secret_initiator:
+    "All n #i #j. Secret_I(n)@i & K(n)@j ==> F"
+!>)
+
+define(<!lemma_nonce_secret_receiver!>,<!
+lemma nonce_secret_receiver:
+    "All n #i #j. Secret_R(n)@i & K(n)@j ==> F"
+!>)
+
+define(<!lemma_message_authentication!>,<!
+lemma message_authentication:
+    "All I n #j. Authentic(I,n)@j ==> Ex #i. Send(I, n)@i & #i<#j"
+!>)
+
+define(<!lemma_exists_I0!>,<!
+lemma exists_I0:
+    exists-trace
+    "Ex tid #j. I0(tid)@j"
+!>)

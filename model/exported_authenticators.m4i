@@ -1,0 +1,69 @@
+include(crypto.m4i)
+
+rule Register_pk:
+    [ Fr(~ltk) ]
+  -->
+    [ !Ltk($A, ~ltk), !Pk($A, pk(~ltk)) ]
+
+
+rule Get_pk:
+    [ !Pk(A, pubkey) ]
+  -->
+     [ Out(pubkey) ]
+
+rule Reveal_ltk:
+    [ !Ltk(A, ltk) ]
+  --[ LtkReveal(A) ]->
+    [ Out(ltk) ]
+
+
+rule new_TLS_channel:
+    [ Fr(ms), Fr(TLS_transcript) ]
+  --[ Gen_ms(ms) ]->
+    [ !SecureChannel(ms, TLS_transcript, $A, $B) ]
+
+rule ChanOut_S:
+    [ !SecureChannel(ms, TLS_transcript, $A, $B), 
+      Out_S($A, $B, x) 
+    ]
+  --[ ChanOut_S(ms, $A, $B, x) ]->
+    [ !Sec(ms, $A, $B, x) ]
+
+rule ChanIn_S:
+    [ !Sec(ms, $A, $B, x) ]
+  --[ ChanIn_S(ms, $A, $B, x) ]->
+    [ In_S($A, $B, x)]
+
+rule GenHCC_C:
+    [ !SecureChannel(ms, TLS_transcript, $A, $B) ]
+  --[ GenHCC_C(ms, $A, $B) ]->
+    [ !Exporter(ms, $A, $B, Handshake_Context_Client) ]
+
+/* Protocol */
+
+rule I_0:
+    [ !SecureChannel(ms, TLS_transcript, $A, $B)
+    , !Exporter(ms, $A, $B, Handshake_Context_Client)
+    , Fr(~tid)
+    ]
+  --[ Start(~tid) ]->
+    [ State(~tid,'I0', $A, $B, Handshake_Context_Client) ]
+
+rule I_1:
+  let 
+    hcc = Handshake_Context_Client 
+  in
+    [ State(~tid, 'I0', $A, $B, hcc) ]
+  --[ Send($I, hcc)
+    , Secret_I(hcc) 
+    , I0(~tid)
+    ]->
+    [ State(~tid, 'I1', $A, $B, hcc)
+    , Out_S($I, $R, hcc) 
+    ]
+
+rule R_1:
+    [ In_S($I, $R, n) ]
+  --[ Secret_R(n), Authentic($I, n) ]->
+    [  ]
+
