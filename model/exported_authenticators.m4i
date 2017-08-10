@@ -23,8 +23,9 @@ rule new_TLS_channel:
     [ !SecureChannel(ms, TLS_transcript, $A, $B) ]
 
 rule ChanOut_S:
-    [ !SecureChannel(ms, TLS_transcript, $A, $B), 
-      Out_S($A, $B, x) 
+    [ !SecureChannel(ms, TLS_transcript, $A, $B)
+    , Out_S($A, $B, tid, x)
+    , !ChannelLabel(tid, ms)
     ]
   --[ ChanOut_S(ms, $A, $B, x) ]->
     [ !Sec(ms, $A, $B, x) ]
@@ -47,23 +48,48 @@ rule I_0:
     , Fr(~tid)
     ]
   --[ Start(~tid) ]->
-    [ State(~tid,'I0', $A, $B, Handshake_Context_Client) ]
+    [ State(~tid,'I0', $A, $B, Handshake_Context_Client)
+    , !ChannelLabel(~tid, ms)
+    ]
 
 rule I_1:
   let 
     hcc = Handshake_Context_Client 
   in
-    [ State(~tid, 'I0', $A, $B, hcc) ]
+    [ State(~tid, 'I0', $A, $B, hcc)
+    , !ChannelLabel(~tid, ms)
+    ]
   --[ Send($I, hcc)
     , Secret_I(hcc) 
     , I0(~tid)
     ]->
     [ State(~tid, 'I1', $A, $B, hcc)
-    , Out_S($I, $R, hcc) 
+    , Out_S($I, $R, ~tid, hcc) 
     ]
 
+rule R_0:
+    [ !SecureChannel(ms, TLS_transcript, $A, $B)
+    , !Exporter(ms, $A, $B, Handshake_Context_Client)
+    , Fr(~tid)
+    ]
+  --[ Start(~tid)]->
+    [ State(~tid, 'R0', $A, $B, Handshake_Context_Client)
+    , !ChannelLabel(~tid, ms)
+    ]
+
+
+
 rule R_1:
-    [ In_S($I, $R, n) ]
-  --[ Secret_R(n), Authentic($I, n) ]->
+  let 
+    hcc = Handshake_Context_Client
+  in
+    [ State(~tid, 'R0', $A, $B, hcc)
+    , In_S($I, $R, n)
+    , !ChannelLabel(~tid, ms)
+    ]
+  --[ Eq(hcc, n)
+    , Secret_R(n)
+    , Authentic($I, n) 
+    ]->
     [  ]
 
