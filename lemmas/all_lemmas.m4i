@@ -1,20 +1,16 @@
-define(<!lemma_nonce_secret_initiator!>,<!
-lemma nonce_secret_initiator:
-    "All n #i #j. Secret_I(n)@i & K(n)@j ==> F"
-!>)
-
-define(<!lemma_nonce_secret_receiver!>,<!
-lemma nonce_secret_receiver:
-    "All n #i #j. Secret_R(n)@i & K(n)@j ==> F"
-!>)
-
-define(<!lemma_message_authentication!>,<!
-lemma message_authentication:
-    "All I n #j. Authentic(I,n)@j ==> Ex #i. Send(I, n)@i & #i<#j"
-!>)
-
-define(<!lemma_exists_I0!>,<!
-lemma exists_I0:
+define(<!lemma_exists_Start!>,<!dnl
+lemma exists_Start:
     exists-trace
-    "Ex tid #j. I0(tid)@j"
-!>)
+    "Ex tid A #j. Start(tid, A)@j"
+!>)dnl
+dnl
+define(<!lemma_exists_S0!>,<!dnl
+lemma exists_S0:
+    exists-trace
+    "Ex tid #j. S0(tid)@j"
+!>)dnl
+dnl
+define(<!lemma_cert_ownership!>,<!dnl
+lemma cert_ownership:
+  "All actor peer pub_key sec_key #j. Recv(actor, peer, pub_key)@j & (pub_key=pk(sec_key)) ==> Ex #i. Owns(peer, sec_key)@i & #i<#j"
+!>)dnl

@@ -1,0 +1,7 @@
+define(<!handshake_record!>, <!<$@>!>)
+define(<!Certificate!>, <!handshake_record('11', certificate_request_context, certificate)!>)
+define(<!CertificateVerify!>, <!handshake_record('15', dnl
+dnl  $sig_alg, Removing 
+  signature dnl
+)!>)
+define(<!Finished!>, <!handshake_record('20', verify_data)!>)

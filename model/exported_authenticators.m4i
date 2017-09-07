@@ -1,4 +1,5 @@
-include(crypto.m4i)
+include(crypto.m4i)dnl
+include(msgs.m4i)dnl
 
 rule Register_pk:
     [ Fr(~ltk) ]
@@ -17,77 +18,90 @@ rule Reveal_ltk:
     [ Out(ltk) ]
 
 
-rule new_TLS_channel:
-    [ Fr(ms), Fr(TLS_transcript) ]
-  --[ Gen_ms(ms) ]->
-    [ !SecureChannel(ms, TLS_transcript, $A, $B)
-    , !Exporter(ms, $A, $B, Handshake_Context_Client)
+rule Create_TLS_channel:
+    [ Fr(ms)
+    , Fr(TLS_transcript) 
+    , Fr(cid)
+    , Create_TLS_Channel(owner_host, owner_cid, target_host)
+    ]
+  -->
+    [ !TLS_Channel(ms, TLS_transcript, owner_host, owner_cid, target_host, cid)
+    , !Exporters(ms, cid, Handshake_Context(client), Handshake_Context(server), Finished_MAC(client), Finished_MAC(server))
+    , !Exporters(ms, owner_cid, Handshake_Context(client), Handshake_Context(server), Finished_MAC(client), Finished_MAC(server))
     ]
 
-rule ChanOut_S:
-    [ !SecureChannel(ms, TLS_transcript, $A, $B)
-    , Out_S($A, $B, tid, x)
-    , !ChannelLabel(tid, ms)
+rule Send_TLS_Channel_owner:
+    [ TLS_Send(cid, from_host, to_host, msg)
+    , !TLS_Channel(ms, TLS_transcript, owner_host, owner_cid, target_host, target_cid)
     ]
-  --[ ChanOut_S(ms, $A, $B, x) ]->
-    [ !Sec(ms, $A, $B, x) ]
+  --[ Check_pair_or_swapped(from_host, to_host, owner_host, target_host)
+    , Eq(cid, owner_cid)
+    ]->
+    [ TLS_Recv(target_cid, from_host, to_host, msg) ]
 
-rule ChanIn_S:
-    [ !Sec(ms, $A, $B, x) ]
-  --[ ChanIn_S(ms, $A, $B, x) ]->
-    [ In_S($A, $B, x)]
-
+rule Send_TLS_Channel_target:
+    [ TLS_Send(cid, from_host, to_host, msg)
+    , !TLS_Channel(ms, TLS_transcript, owner_host, owner_cid, target_host, target_cid)
+    ]
+  --[ Check_pair_or_swapped(from_host, to_host, owner_host, target_host)
+    , Eq(cid, target_cid)
+    ]->
+    [ TLS_Recv(owner_cid, from_host, to_host, msg) ]
 
 /* Protocol */
-
-rule I_0:
-    [ !SecureChannel(ms, TLS_transcript, $A, $B)
-    , Fr(~tid)
-    ]
-  --[ Start(~tid) ]->
-    [ State(~tid,'I0', $A, $B)
-    , !ChannelLabel(~tid, ms)
-    ]
-
-rule I_1:
-  let 
-    hcc = Handshake_Context_Client 
+rule C_0:
+  let
+    C=$C
+    S=$S
   in
-    [ State(~tid, 'I0', $A, $B)
-    , !ChannelLabel(~tid, ms)
-    , !Exporter(ms, $A, $B, hcc)
+    [ Fr(~tid)
     ]
-  --[ Send($I, hcc)
-    , Secret_I(hcc) 
-    , I0(~tid)
+  --[ Start(~tid, C) 
+    , C0(~tid)
     ]->
-    [ State(~tid, 'I1', $A, $B)
-    , Out_S($I, $R, ~tid, hcc) 
+    [ State(~tid, 'C0', C, S, 'client')
+    , Create_TLS_Channel(C, ~tid, S)
     ]
 
-rule R_0:
-    [ !SecureChannel(ms, TLS_transcript, $A, $B)
-    , Fr(~tid)
-    ]
-  --[ Start(~tid)]->
-    [ State(~tid, 'R0', $A, $B)
-    , !ChannelLabel(~tid, ms)
-    ]
-
-
-
-rule R_1:
-  let 
-    hcc = Handshake_Context_Client
+rule C_1:
+  let
+    C=$C
+    S=$S
+    certificate_request_context=~certificate_request_context
+    certificate=pk(~ltkC)
+    signature=compute_signature(~ltkC, h(hccc, certificate))
+    verify_data = hmac(fmc, <hccc, Certificate, CertificateVerify>)
   in
-    [ State(~tid, 'R0', $A, $B)
-    , In_S($I, $R, n)
-    , !Exporter(ms, $A, $B, hcc)
-    , !ChannelLabel(~tid, ms)
+    [ State(~tid, 'C0', C, S, 'client')
+    , Fr(~certificate_request_context)
+    , !Exporters(~ms, ~tid, hccc, hccs, fmc, fms)
+    , !Ltk($C, ~ltkC)
     ]
-  --[ Secret_R(n)
-    , Authentic($I, n)
-    , Eq(n, hcc) 
+  --[ C1(~tid)
+    , Owns($C, ~ltkC)
     ]->
-    [  ]
+    [ State(~tid, 'C1', C, S, 'client')
+    , TLS_Send(~tid, C, S, <Certificate, CertificateVerify, Finished>) 
+    ]
+    
+rule S_0:
+  let 
+    C=$C
+    S=$S
+    certificate=pk(~ltkC)
+    signature=compute_signature(~ltkC, h(hccc, certificate))
+    verify_data = hmac(fmc, <hccc, cert, CertificateVerify>)
+  in
+    [ TLS_Recv(~tid, C, S, <cert, cert_verify, fin>)
+    , !Exporters(~ms, ~tid, hccc, hccs, fmc, fms)
+    , !Pk($C, pk(~ltkC))
+    ]
+  --[ Start(~tid, S) 
+    , S0(~tid)
+    , Eq(cert_verify, CertificateVerify)
+    , Eq(fin, Finished)
+    , Recv(S, C, pk(~ltkC))
+    ]->
+    [ State(~tid, 'S0', S, C, 'server')
+    ]
 

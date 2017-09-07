@@ -7,16 +7,10 @@ include(header.m4i)
 include(exported_authenticators.m4i)
 include(all_lemmas.m4i)
 
-lemma_nonce_secret_initiator
+lemma_exists_Start
 
-lemma_nonce_secret_receiver
+lemma_exists_S0
 
-lemma_message_authentication
-
-lemma_exists_I0
-
-lemma exists_Start:
-    exists-trace
-    "Ex tid #j. Start(tid)@j"
+lemma_cert_ownership
 
 end
