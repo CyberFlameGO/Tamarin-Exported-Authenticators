@@ -12,5 +12,7 @@ lemma exists_S0:
 dnl
 define(<!lemma_cert_ownership!>,<!dnl
 lemma cert_ownership:
-  "All actor peer pub_key sec_key #j. Recv(actor, peer, pub_key)@j & (pub_key=pk(sec_key)) ==> Ex #i. Owns(peer, sec_key)@i & #i<#j"
+  "All actor peer peer2 pub_key sec_key #i #j. Owns(peer, sec_key)@i & Recv(actor, peer2, pub_key)@j & (pub_key=pk(sec_key)) & not(peer=peer2) ==> Ex #k. RevLtk(sec_key)@k & k<j"
 !>)dnl
+
+
