@@ -1,5 +1,6 @@
 include(crypto.m4i)dnl
 include(msgs.m4i)dnl
+include(adversary.m4i)dnl
 
 rule Register_pk:
     [ Fr(~ltk) ]
@@ -11,12 +12,6 @@ rule Get_pk:
     [ !Pk(A, pubkey) ]
   -->
      [ Out(pubkey) ]
-
-rule Reveal_ltk:
-    [ !Ltk(A, ltk) ]
-  --[ LtkReveal(A) ]->
-    [ Out(ltk) ]
-
 
 rule Create_TLS_channel:
     [ Fr(ms)
