@@ -19,7 +19,9 @@ rule Create_TLS_channel:
     , Fr(cid)
     , Create_TLS_Channel(owner_host, owner_cid, target_host)
     ]
-  -->
+  --[
+      SessionKey(ms, TLS_transcript)
+    ]->
     [ !TLS_Channel(ms, TLS_transcript, owner_host, owner_cid, target_host, cid)
     , !Exporters(ms, cid, Handshake_Context(client), Handshake_Context(server), Finished_MAC(client), Finished_MAC(server))
     , !Exporters(ms, owner_cid, Handshake_Context(client), Handshake_Context(server), Finished_MAC(client), Finished_MAC(server))
