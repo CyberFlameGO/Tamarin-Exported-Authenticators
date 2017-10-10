@@ -1,31 +1,31 @@
 rule Reveal_ltk:
-    [ !Ltk(A, ltk) ]
-  --[ RevLtk(A) ]->
-    [ Out(ltk) ]
+  [ !Ltk(A, ltk) ]
+--[ RevLtk(A) ]->
+  [ Out(ltk) ]
 
 rule Create_Adv_TLS_channel:
-    [ Fr(ms)
-    , Fr(TLS_transcript)
-    , Fr(~owner_cid)
-    , Fr(cid)
-    ]
-  --[ Adv_TLS($I, ~owner_cid) 
-    ]->
-    [ !TLS_Channel(ms, TLS_transcript, $I, ~owner_cid, $S, cid)
-    , !Exporters(ms, cid, Handshake_Context(client), Handshake_Context(server), Finished_MAC(client), Finished_MAC(server))
-    , Out(<~owner_cid, Handshake_Context(client), Handshake_Context(server), Finished_MAC(client), Finished_MAC(server)>)
-    ]
+  [ Fr(ms)
+  , Fr(TLS_transcript)
+  , Fr(~owner_cid)
+  , Fr(cid)
+  ]
+--[ Adv_TLS($I, ~owner_cid) 
+  ]->
+  [ !TLS_Channel(ms, TLS_transcript, $I, ~owner_cid, $S, cid)
+  , !Exporters(ms, cid, Handshake_Context(client), Handshake_Context(server), Finished_MAC(client), Finished_MAC(server))
+  , Out(<~owner_cid, Handshake_Context(client), Handshake_Context(server), Finished_MAC(client), Finished_MAC(server)>)
+]
 
 rule Adv_Send_TLS:
-    [ In(<~owner_cid, m>)
-    , !TLS_Channel(ms, TLS_transcript, $I, ~owner_cid, $S, cid)
-    ]
+  [ In(<~owner_cid, m>)
+  , !TLS_Channel(ms, TLS_transcript, $I, ~owner_cid, $S, cid)
+  ]
   -->
-    [ TLS_Send(~owner_cid, $I, $S, m) ]
+  [ TLS_Send(~owner_cid, $I, $S, m) ]
 
 rule Adv_Recv_TLS:
-    [ TLS_Recv(~owner_cid, from_host, to_host, msg)
-    , In(<~owner_cid>)
-    ]
+  [ TLS_Recv(~owner_cid, from_host, to_host, msg)
+  , In(<~owner_cid>)
+  ]
   -->
-    [ Out(<from_host, to_host, msg>) ] 
+  [ Out(<from_host, to_host, msg>) ] 
