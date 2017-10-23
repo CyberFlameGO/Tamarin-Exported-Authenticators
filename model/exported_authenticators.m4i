@@ -81,24 +81,64 @@ rule C_1:
     , TLS_Send(~tid, C, S, <Certificate, CertificateVerify, Finished>) 
     ]
     
+rule C_2:
+  let 
+    C=$C
+    S=$S
+    certificate=pk(~ltkS)
+    sig_msg=signature_input(h(hccs, certificate))
+    exp_verify_data = hmac(fms, <hccs, Certificate, CertificateVerify>)
+  in
+    [ TLS_Recv(~tid, C, S, <Certificate, CertificateVerify, Finished>)
+    , !Exporters(~ms, ~tid, hccc, hccs, fmc, fms)
+    , !Pk($S, pk(~ltkS))
+    ]
+  --[ C2(~tid)
+    , Eq(verify(signature, sig_msg, pk(~ltkS)), true)
+    , Eq(verify_data, exp_verify_data)
+    , Recv(C, S, pk(~ltkS))
+    ]->
+    [ State(~tid, 'C2', C, S, 'client')
+    ]
+
 rule S_0:
   let 
     C=$C
     S=$S
     certificate=pk(~ltkC)
-    signature=compute_signature(~ltkC, h(hccc, certificate))
-    verify_data = hmac(fmc, <hccc, cert, CertificateVerify>)
+    sig_msg=signature_input(h(hccc, certificate))
+    exp_verify_data = hmac(fmc, <hccc, Certificate, CertificateVerify>)
   in
-    [ TLS_Recv(~tid, C, S, <cert, cert_verify, fin>)
+    [ TLS_Recv(~tid, C, S, <Certificate, CertificateVerify, Finished>)
     , !Exporters(~ms, ~tid, hccc, hccs, fmc, fms)
     , !Pk($C, pk(~ltkC))
     ]
   --[ Start(~tid, S) 
     , S0(~tid)
-    , Eq(cert_verify, CertificateVerify)
-    , Eq(fin, Finished)
+    , Eq(verify(signature, sig_msg, pk(~ltkC)), true)
+    , Eq(verify_data,exp_verify_data)
     , Recv(S, C, pk(~ltkC))
     ]->
     [ State(~tid, 'S0', S, C, 'server')
     ]
 
+rule S_1:
+  let
+    C=$C
+    S=$S
+    certificate_request_context=~certificate_request_context
+    certificate=pk(~ltkS)
+    signature=compute_signature(~ltkS, h(hccs, certificate))
+    verify_data = hmac(fms, <hccs, Certificate, CertificateVerify>)
+  in
+    [ State(~tid, 'S0', S, C, 'server')
+    , Fr(~certificate_request_context)
+    , !Exporters(~ms, ~tid, hccc, hccs, fmc, fms)
+    , !Ltk($S, ~ltkS)
+    ]
+  --[ S1(~tid)
+    , Owns($S, ~ltkS)
+    ]->
+    [ State(~tid, 'S1', S, C, 'server')
+    , TLS_Send(~tid, C, S, <Certificate, CertificateVerify, Finished>)
+    ]

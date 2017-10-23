@@ -17,6 +17,6 @@ lemma secret_session_keys:
 dnl
 define(<!lemma_cert_ownership!>,<!dnl
 lemma cert_ownership:
-  "All actor peer ltkC #j. Recv(actor, peer, pk(ltkC))@j ==> (Ex #i. Owns(peer, ltkC)@i & (#i<#j)) | Ex #k. RevLtk(peer)@k"
+  "All actor peer ltkC #k. Recv(actor, peer, pk(ltkC))@k ==> (Ex #i. Owns(peer, ltkC)@i & (#i<#k)) | (Ex #j. RevLtk(peer)@j & (#j<#k))"
 !>)dnl
 dnl
