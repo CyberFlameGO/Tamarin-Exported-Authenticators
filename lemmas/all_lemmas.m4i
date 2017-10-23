@@ -17,7 +17,6 @@ lemma secret_session_keys:
 dnl
 define(<!lemma_cert_ownership!>,<!dnl
 lemma cert_ownership:
-  "All actor peer peer2 pub_key sec_key #i #j. Owns(peer, sec_key)@i & Recv(actor, peer2, pub_key)@j & (pub_key=pk(sec_key)) & not(peer=peer2) ==> Ex #k. RevLtk(sec_key)@k & k<j"
+  "All actor peer ltkC #j. Recv(actor, peer, pk(ltkC))@j ==> (Ex #i. Owns(peer, ltkC)@i & (#i<#j)) | Ex #k. RevLtk(peer)@k"
 !>)dnl
-
-
+dnl
