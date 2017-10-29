@@ -7,12 +7,18 @@ include(header.m4i)
 include(exported_authenticators.m4i)
 include(all_lemmas.m4i)
 
+lemma_uniq_tid
+
+lemma_tid_invariant
+
+lemma_one_start_per_tid
+
 lemma_exists_Start
 
-lemma_exists_S0
+lemma_can_loop
 
 lemma_secret_session_keys
 
-lemma_cert_ownership
+dnl lemma_cert_ownership
 
 end

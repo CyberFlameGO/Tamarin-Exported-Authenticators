@@ -1,14 +1,30 @@
 define(<!lemma_exists_Start!>,<!dnl
 lemma exists_Start:
     exists-trace
-    "Ex tid A #j. Start(tid, A)@j"
+    "Ex tid A role #j. Start(tid, A, role)@j"
 !>)dnl
 dnl
-define(<!lemma_exists_S0!>,<!dnl
-lemma exists_S0:
-    exists-trace
-    "Ex tid #j. S0(tid)@j"
+define(<!lemma_tid_invariant!>, <!
+lemma tid_invariant [use_induction, reuse]:
+  "All tid actor role #i. Instance(tid, actor, role)@i==>
+      (Ex #j. Start(tid, actor, role)@j & (#j < #i))"
 !>)dnl
+dnl
+define(<!lemma_one_start_per_tid!>, <!
+lemma one_start_per_tid [reuse]:
+  "All tid actor actor2 role role2 #i #j. Start(tid, actor, role)@i & Start(tid, actor2, role2)@j ==>#i=#j"
+!>)dnl
+dnl
+define(<!lemma_uniq_tid!>,<!dnl
+lemma uniq_C_Send:
+    "All tid actor1 actor2 role1 role2 #i #j. Start(tid, actor1, role1)@i & Start(tid, actor2, role2)@j ==>  #i=#j & actor1=actor2 & role1=role2"
+!>)dnl
+dnl
+define(<!lemma_can_loop!>,<!dnl
+lemma can_loop:
+    exists-trace
+    "Ex tid #j #k. S_Recv(tid)@j & S_Recv(tid)@k &  (#j < #k)"
+!>)dnl   
 dnl
 define(<!lemma_secret_session_keys!>,<!dnl
 lemma secret_session_keys:

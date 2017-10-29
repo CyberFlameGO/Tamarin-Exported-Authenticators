@@ -1,6 +1,6 @@
 include(crypto.m4i)dnl
 include(msgs.m4i)dnl
-include(adversary.m4i)dnl
+dnl include(adversary.m4i)dnl
 
 rule Register_pk:
     [ Fr(~ltk) ]
@@ -23,8 +23,8 @@ rule Create_TLS_channel:
       SessionKey(ms, TLS_transcript)
     ]->
     [ !TLS_Channel(ms, TLS_transcript, owner_host, owner_cid, target_host, cid)
-    , !Exporters(ms, cid, Handshake_Context(client), Handshake_Context(server), Finished_MAC(client), Finished_MAC(server))
-    , !Exporters(ms, owner_cid, Handshake_Context(client), Handshake_Context(server), Finished_MAC(client), Finished_MAC(server))
+    , !Exporters(ms, 'server',  cid, Handshake_Context(client), Handshake_Context(server), Finished_MAC(client), Finished_MAC(server))
+    , !Exporters(ms, 'client', owner_cid, Handshake_Context(client), Handshake_Context(server), Finished_MAC(client), Finished_MAC(server))
     ]
 
 rule Send_TLS_Channel_owner:
@@ -53,14 +53,14 @@ rule C_0:
   in
     [ Fr(~tid)
     ]
-  --[ Start(~tid, C) 
+  --[ Start(~tid, C, 'client') 
     , C0(~tid)
     ]->
     [ State(~tid, 'C0', C, S, 'client')
     , Create_TLS_Channel(C, ~tid, S)
     ]
 
-rule C_1:
+rule C_Send:
   let
     C=$C
     S=$S
@@ -71,17 +71,18 @@ rule C_1:
   in
     [ State(~tid, 'C0', C, S, 'client')
     , Fr(~certificate_request_context)
-    , !Exporters(~ms, ~tid, hccc, hccs, fmc, fms)
+    , !Exporters(~ms, 'client', ~tid, hccc, hccs, fmc, fms)
     , !Ltk($C, ~ltkC)
     ]
-  --[ C1(~tid)
+  --[ C_Send(~tid)
     , Owns($C, ~ltkC)
+    , Instance(~tid, C, 'client')
     ]->
-    [ State(~tid, 'C1', C, S, 'client')
+    [ State(~tid, 'C0', C, S, 'client')
     , TLS_Send(~tid, C, S, <Certificate, CertificateVerify, Finished>) 
     ]
     
-rule C_2:
+rule C_Recv:
   let 
     C=$C
     S=$S
@@ -89,19 +90,35 @@ rule C_2:
     sig_msg=signature_input(h(hccs, certificate))
     exp_verify_data = hmac(fms, <hccs, Certificate, CertificateVerify>)
   in
-    [ TLS_Recv(~tid, C, S, <Certificate, CertificateVerify, Finished>)
-    , !Exporters(~ms, ~tid, hccc, hccs, fmc, fms)
+    [ State(~tid, 'C0', C, S, 'client')
+    , TLS_Recv(~tid, C, S, <Certificate, CertificateVerify, Finished>)
+    , !Exporters(~ms, 'client', ~tid, hccc, hccs, fmc, fms)
     , !Pk($S, pk(~ltkS))
     ]
-  --[ C2(~tid)
+  --[ C_Recv(~tid)
     , Eq(verify(signature, sig_msg, pk(~ltkS)), true)
     , Eq(verify_data, exp_verify_data)
     , Recv(C, S, pk(~ltkS))
+    , Instance(~tid, C, 'client')
     ]->
-    [ State(~tid, 'C2', C, S, 'client')
+    [ State(~tid, 'C0', C, S, 'client')
+    , !AcceptOwnership(~tid, C, S, pk(~ltkS))
     ]
 
 rule S_0:
+  let
+    C=$C
+    S=$S
+  in
+    [ !Exporters(~ms, 'server', ~tid, hccc, hccs, fmc, fms)
+    ]
+  --[ Start(~tid, S, 'server')
+    , S0(~tid)
+    ]->
+    [ State(~tid, 'S0', S, C, 'server')
+    ]
+
+rule S_Recv:
   let 
     C=$C
     S=$S
@@ -109,20 +126,22 @@ rule S_0:
     sig_msg=signature_input(h(hccc, certificate))
     exp_verify_data = hmac(fmc, <hccc, Certificate, CertificateVerify>)
   in
-    [ TLS_Recv(~tid, C, S, <Certificate, CertificateVerify, Finished>)
-    , !Exporters(~ms, ~tid, hccc, hccs, fmc, fms)
+    [ State(~tid, 'S0', S, C, 'server')
+    , TLS_Recv(~tid, C, S, <Certificate, CertificateVerify, Finished>)
+    , !Exporters(~ms, 'server', ~tid, hccc, hccs, fmc, fms)
     , !Pk($C, pk(~ltkC))
     ]
-  --[ Start(~tid, S) 
-    , S0(~tid)
+  --[ S_Recv(~tid)
     , Eq(verify(signature, sig_msg, pk(~ltkC)), true)
     , Eq(verify_data,exp_verify_data)
     , Recv(S, C, pk(~ltkC))
+    , Instance(~tid, S, 'server')
     ]->
     [ State(~tid, 'S0', S, C, 'server')
+    , !AcceptOwnership(~tid, C, S, pk(~ltkC))
     ]
 
-rule S_1:
+rule S_Send:
   let
     C=$C
     S=$S
@@ -133,12 +152,13 @@ rule S_1:
   in
     [ State(~tid, 'S0', S, C, 'server')
     , Fr(~certificate_request_context)
-    , !Exporters(~ms, ~tid, hccc, hccs, fmc, fms)
+    , !Exporters(~ms, 'server', ~tid, hccc, hccs, fmc, fms)
     , !Ltk($S, ~ltkS)
     ]
-  --[ S1(~tid)
+  --[ S_Send(~tid)
     , Owns($S, ~ltkS)
+    , Instance(~tid, S, 'server')
     ]->
-    [ State(~tid, 'S1', S, C, 'server')
+    [ State(~tid, 'S0', S, C, 'server')
     , TLS_Send(~tid, C, S, <Certificate, CertificateVerify, Finished>)
     ]
