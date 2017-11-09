@@ -24,6 +24,7 @@ rule Create_TLS_channel:
     ]->
     [ !TLS_Channel(ms, TLS_transcript, owner_host, owner_cid, target_host, cid)
     , !Exporters(ms, 'server',  cid, Handshake_Context(client), Handshake_Context(server), Finished_MAC(client), Finished_MAC(server))
+    , ServerStart(cid)
     , !Exporters(ms, 'client', owner_cid, Handshake_Context(client), Handshake_Context(server), Finished_MAC(client), Finished_MAC(server))
     ]
 
@@ -111,6 +112,7 @@ rule S_0:
     S=$S
   in
     [ !Exporters(~ms, 'server', ~tid, hccc, hccs, fmc, fms)
+    , ServerStart(~tid)
     ]
   --[ Start(~tid, S, 'server')
     , S0(~tid)
