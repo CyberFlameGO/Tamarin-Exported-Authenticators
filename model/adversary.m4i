@@ -12,7 +12,8 @@ rule Create_Adv_TLS_channel:
 --[ Adv_TLS($I, ~owner_cid) 
   ]->
   [ !TLS_Channel(ms, TLS_transcript, $I, ~owner_cid, $S, cid)
-  , !Exporters(ms, cid, Handshake_Context(client), Handshake_Context(server), Finished_MAC(client), Finished_MAC(server))
+  , !Exporters(ms, 'server', cid, Handshake_Context(client), Handshake_Context(server), Finished_MAC(client), Finished_MAC(server))
+    , ServerStart(cid)
   , Out(<~owner_cid, Handshake_Context(client), Handshake_Context(server), Finished_MAC(client), Finished_MAC(server)>)
 ]
 

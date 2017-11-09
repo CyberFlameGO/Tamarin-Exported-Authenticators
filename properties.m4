@@ -29,6 +29,6 @@ lemma_can_loop_state(C_Recv)
 
 lemma_secret_session_keys
 
-dnl lemma_cert_ownership
+lemma_cert_ownership
 
 end

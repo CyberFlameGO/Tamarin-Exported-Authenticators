@@ -1,6 +1,6 @@
 include(crypto.m4i)dnl
 include(msgs.m4i)dnl
-dnl include(adversary.m4i)dnl
+include(adversary.m4i)dnl
 
 rule Register_pk:
     [ Fr(~ltk) ]
