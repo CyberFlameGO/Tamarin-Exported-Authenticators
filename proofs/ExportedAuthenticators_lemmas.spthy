@@ -1,0 +1,1022 @@
+theory ExportedAuthenticators_lemmas begin
+
+// Function signature and definition of the equational theory E
+
+functions: Expand/3, Exporter/3, Extract/2, adec/2, aenc/2, fst/1,
+           h/1, hmac/1, mac/1, mask/2, pair/2, pk/1, sign/2, snd/1, true/0,
+           unmask/2, verify/3
+equations:
+    adec(aenc(x.1, pk(x.2)), x.2) = x.1,
+    fst(<x.1, x.2>) = x.1,
+    snd(<x.1, x.2>) = x.2,
+    unmask(mask(x, y), x) = y,
+    unmask(mask(x, y), y) = x,
+    verify(sign(x.1, x.2), x.1, pk(x.2)) = true
+
+section{* TLS Exported Authenticators*}
+
+restriction Eq_check_succeed:
+  "∀ x y #i. (Eq( x, y ) @ #i) ⇒ (x = y)"
+  // safety formula
+
+restriction Neq_check_succeed:
+  "∀ x y #i. (Neq( x, y ) @ #i) ⇒ (¬(x = y))"
+  // safety formula
+
+restriction pair_or_swapped:
+  "∀ x y a b #i.
+    (Check_pair_or_swapped( x, y, a, b ) @ #i) ⇒
+    (((x = a) ∧ (y = b)) ∨ ((x = b) ∧ (y = a)))"
+  // safety formula
+
+rule (modulo E) Register_pk:
+   [ Fr( ~ltk ) ] --> [ !Ltk( $A, ~ltk ), !Pk( $A, pk(~ltk) ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Get_pk:
+   [ !Pk( A, pubkey ) ] --> [ Out( pubkey ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Create_TLS_channel:
+   [
+   Fr( ms ), Fr( TLS_transcript ), Fr( cid ),
+   Create_TLS_Channel( owner_host, owner_cid, target_host )
+   ]
+  --[ SessionKey( ms, TLS_transcript ) ]->
+   [
+   !TLS_Channel( ms, TLS_transcript, owner_host, owner_cid,
+                 target_host, cid
+   ),
+   !Exporters( ms, 'server', cid,
+               Expand(Expand(Expand(ms,
+                                    <'32', 'TLS13exportermastersecret', h(TLS_transcript)>, '32'),
+                             <'32', 'EXPORTER_clientauthenticatorhandshakecontext', 'empty'>,
+                             '32'),
+                      <'32', 'exporter', h(<'empty', '32'>)>, '32'),
+               Expand(Expand(Expand(ms,
+                                    <'32', 'TLS13exportermastersecret', h(TLS_transcript)>, '32'),
+                             <'32', 'EXPORTER_serverauthenticatorhandshakecontext', 'empty'>,
+                             '32'),
+                      <'32', 'exporter', h(<'empty', '32'>)>, '32'),
+               Expand(Expand(Expand(ms,
+                                    <'32', 'TLS13exportermastersecret', h(TLS_transcript)>, '32'),
+                             <'32', 'EXPORTER_clientauthenticatorfinishedkey', 'empty'>, '32'),
+                      <'32', 'exporter', h(<'empty', '32'>)>, '32'),
+               Expand(Expand(Expand(ms,
+                                    <'32', 'TLS13exportermastersecret', h(TLS_transcript)>, '32'),
+                             <'32', 'EXPORTER_serverauthenticatorfinishedkey', 'empty'>, '32'),
+                      <'32', 'exporter', h(<'empty', '32'>)>, '32')
+   ),
+   ServerStart( cid ),
+   !Exporters( ms, 'client', owner_cid,
+               Expand(Expand(Expand(ms,
+                                    <'32', 'TLS13exportermastersecret', h(TLS_transcript)>, '32'),
+                             <'32', 'EXPORTER_clientauthenticatorhandshakecontext', 'empty'>,
+                             '32'),
+                      <'32', 'exporter', h(<'empty', '32'>)>, '32'),
+               Expand(Expand(Expand(ms,
+                                    <'32', 'TLS13exportermastersecret', h(TLS_transcript)>, '32'),
+                             <'32', 'EXPORTER_serverauthenticatorhandshakecontext', 'empty'>,
+                             '32'),
+                      <'32', 'exporter', h(<'empty', '32'>)>, '32'),
+               Expand(Expand(Expand(ms,
+                                    <'32', 'TLS13exportermastersecret', h(TLS_transcript)>, '32'),
+                             <'32', 'EXPORTER_clientauthenticatorfinishedkey', 'empty'>, '32'),
+                      <'32', 'exporter', h(<'empty', '32'>)>, '32'),
+               Expand(Expand(Expand(ms,
+                                    <'32', 'TLS13exportermastersecret', h(TLS_transcript)>, '32'),
+                             <'32', 'EXPORTER_serverauthenticatorfinishedkey', 'empty'>, '32'),
+                      <'32', 'exporter', h(<'empty', '32'>)>, '32')
+   )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Send_TLS_Channel_owner:
+   [
+   TLS_Send( cid, from_host, to_host, msg ),
+   !TLS_Channel( ms, TLS_transcript, owner_host, owner_cid,
+                 target_host, target_cid
+   )
+   ]
+  --[
+  Check_pair_or_swapped( from_host, to_host, owner_host, target_host
+  ),
+  Eq( cid, owner_cid )
+  ]->
+   [ TLS_Recv( target_cid, from_host, to_host, msg ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Send_TLS_Channel_target:
+   [
+   TLS_Send( cid, from_host, to_host, msg ),
+   !TLS_Channel( ms, TLS_transcript, owner_host, owner_cid,
+                 target_host, target_cid
+   )
+   ]
+  --[
+  Check_pair_or_swapped( from_host, to_host, owner_host, target_host
+  ),
+  Eq( cid, target_cid )
+  ]->
+   [ TLS_Recv( owner_cid, from_host, to_host, msg ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) C_0:
+   [ Fr( ~tid ) ]
+  --[ Start( ~tid, $C, $S, 'client' ), C0( ~tid ) ]->
+   [
+   State( ~tid, 'C0', $C, $S, 'client' ),
+   Create_TLS_Channel( $C, ~tid, $S )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) C_Send:
+   [
+   State( ~tid, 'C0', $C, $S, 'client' ),
+   Fr( ~certificate_request_context ),
+   !Exporters( ~ms, 'client', ~tid, hccc, hccs, fmc, fms ),
+   !Ltk( $C, ~ltkC )
+   ]
+  --[
+  C_Send( ~tid ), Owns( $C, ~ltkC ),
+  Instance( ~tid, $C, $S, 'client' )
+  ]->
+   [
+   State( ~tid, 'C0', $C, $S, 'client' ),
+   TLS_Send( ~tid, $C, $S,
+             <<'11', ~certificate_request_context, pk(~ltkC)>, 
+              <'15', sign(<'ExportedAuthenticator', h(<hccc, pk(~ltkC)>)>, ~ltkC)
+              >, 
+              '20', 
+              hmac(<fmc, hccc, <'11', ~certificate_request_context, pk(~ltkC)>, 
+                    '15', sign(<'ExportedAuthenticator', h(<hccc, pk(~ltkC)>)>, ~ltkC)
+                   >)
+             >
+   )
+   ]
+
+  // loop breaker: [0]
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) C_Recv:
+   [
+   State( ~tid, 'C0', $C, $S, 'client' ),
+   TLS_Recv( ~tid, $C, $S,
+             <<'11', certificate_request_context, pk(~ltkS)>, 
+              <'15', signature>, '20', verify_data>
+   ),
+   !Exporters( ~ms, 'client', ~tid, hccc, hccs, fmc, fms ),
+   !Pk( $S, pk(~ltkS) )
+   ]
+  --[
+  C_Recv( ~tid ),
+  Eq( verify(signature,
+             <'ExportedAuthenticator', h(<hccs, pk(~ltkS)>)>, pk(~ltkS)),
+      true
+  ),
+  Eq( verify_data,
+      hmac(<fms, hccs, <'11', certificate_request_context, pk(~ltkS)>, 
+            '15', signature>)
+  ),
+  Recv( $C, $S, pk(~ltkS) ), Instance( ~tid, $C, $S, 'client' )
+  ]->
+   [
+   State( ~tid, 'C0', $C, $S, 'client' ),
+   !AcceptOwnership( ~tid, $C, $S, pk(~ltkS) )
+   ]
+
+  // loop breaker: [0]
+  /*
+  rule (modulo AC) C_Recv:
+     [
+     State( ~tid, 'C0', $C, $S, 'client' ),
+     TLS_Recv( ~tid, $C, $S,
+               <<'11', certificate_request_context, pk(~ltkS)>, 
+                <'15', signature>, '20', verify_data>
+     ),
+     !Exporters( ~ms, 'client', ~tid, hccc, hccs, fmc, fms ),
+     !Pk( $S, pk(~ltkS) )
+     ]
+    --[
+    C_Recv( ~tid ), Eq( z, true ),
+    Eq( verify_data,
+        hmac(<fms, hccs, <'11', certificate_request_context, pk(~ltkS)>, 
+              '15', signature>)
+    ),
+    Recv( $C, $S, pk(~ltkS) ), Instance( ~tid, $C, $S, 'client' )
+    ]->
+     [
+     State( ~tid, 'C0', $C, $S, 'client' ),
+     !AcceptOwnership( ~tid, $C, $S, pk(~ltkS) )
+     ]
+    variants (modulo AC)
+    1. ~ltkS = ~ltkS.27
+       hccs  = hccs.34
+       signature
+             = sign(<'ExportedAuthenticator', h(<hccs.34, pk(~ltkS.27)>)>,
+                    ~ltkS.27)
+       z     = true
+    
+    2. ~ltkS = ~ltkS.28
+       hccs  = hccs.35
+       signature
+             = signature.36
+       z     = verify(signature.36,
+                      <'ExportedAuthenticator', h(<hccs.35, pk(~ltkS.28)>)>,
+                      pk(~ltkS.28))
+    // loop breaker: [0]
+  */
+
+rule (modulo E) S_0:
+   [
+   !Exporters( ~ms, 'server', ~tid, hccc, hccs, fmc, fms ),
+   ServerStart( ~tid )
+   ]
+  --[ Start( ~tid, $S, $C, 'server' ), S0( ~tid ) ]->
+   [ State( ~tid, 'S0', $S, $C, 'server' ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) S_Recv:
+   [
+   State( ~tid, 'S0', $S, $C, 'server' ),
+   TLS_Recv( ~tid, $C, $S,
+             <<'11', certificate_request_context, pk(~ltkC)>, 
+              <'15', signature>, '20', verify_data>
+   ),
+   !Exporters( ~ms, 'server', ~tid, hccc, hccs, fmc, fms ),
+   !Pk( $C, pk(~ltkC) )
+   ]
+  --[
+  S_Recv( ~tid ),
+  Eq( verify(signature,
+             <'ExportedAuthenticator', h(<hccc, pk(~ltkC)>)>, pk(~ltkC)),
+      true
+  ),
+  Eq( verify_data,
+      hmac(<fmc, hccc, <'11', certificate_request_context, pk(~ltkC)>, 
+            '15', signature>)
+  ),
+  Recv( $S, $C, pk(~ltkC) ), Instance( ~tid, $S, $C, 'server' )
+  ]->
+   [
+   State( ~tid, 'S0', $S, $C, 'server' ),
+   !AcceptOwnership( ~tid, $C, $S, pk(~ltkC) )
+   ]
+
+  // loop breaker: [0]
+  /*
+  rule (modulo AC) S_Recv:
+     [
+     State( ~tid, 'S0', $S, $C, 'server' ),
+     TLS_Recv( ~tid, $C, $S,
+               <<'11', certificate_request_context, pk(~ltkC)>, 
+                <'15', signature>, '20', verify_data>
+     ),
+     !Exporters( ~ms, 'server', ~tid, hccc, hccs, fmc, fms ),
+     !Pk( $C, pk(~ltkC) )
+     ]
+    --[
+    S_Recv( ~tid ), Eq( z, true ),
+    Eq( verify_data,
+        hmac(<fmc, hccc, <'11', certificate_request_context, pk(~ltkC)>, 
+              '15', signature>)
+    ),
+    Recv( $S, $C, pk(~ltkC) ), Instance( ~tid, $S, $C, 'server' )
+    ]->
+     [
+     State( ~tid, 'S0', $S, $C, 'server' ),
+     !AcceptOwnership( ~tid, $C, $S, pk(~ltkC) )
+     ]
+    variants (modulo AC)
+    1. ~ltkC = ~ltkC.26
+       hccc  = hccc.32
+       signature
+             = sign(<'ExportedAuthenticator', h(<hccc.32, pk(~ltkC.26)>)>,
+                    ~ltkC.26)
+       z     = true
+    
+    2. ~ltkC = ~ltkC.28
+       hccc  = hccc.34
+       signature
+             = signature.36
+       z     = verify(signature.36,
+                      <'ExportedAuthenticator', h(<hccc.34, pk(~ltkC.28)>)>,
+                      pk(~ltkC.28))
+    // loop breaker: [0]
+  */
+
+rule (modulo E) S_Send:
+   [
+   State( ~tid, 'S0', $S, $C, 'server' ),
+   Fr( ~certificate_request_context ),
+   !Exporters( ~ms, 'server', ~tid, hccc, hccs, fmc, fms ),
+   !Ltk( $S, ~ltkS )
+   ]
+  --[
+  S_Send( ~tid ), Owns( $S, ~ltkS ),
+  Instance( ~tid, $S, $C, 'server' )
+  ]->
+   [
+   State( ~tid, 'S0', $S, $C, 'server' ),
+   TLS_Send( ~tid, $C, $S,
+             <<'11', ~certificate_request_context, pk(~ltkS)>, 
+              <'15', sign(<'ExportedAuthenticator', h(<hccs, pk(~ltkS)>)>, ~ltkS)
+              >, 
+              '20', 
+              hmac(<fms, hccs, <'11', ~certificate_request_context, pk(~ltkS)>, 
+                    '15', sign(<'ExportedAuthenticator', h(<hccs, pk(~ltkS)>)>, ~ltkS)
+                   >)
+             >
+   )
+   ]
+
+  // loop breaker: [0]
+  /* has exactly the trivial AC variant */
+
+lemma uniq_C_Send:
+  all-traces
+  "∀ tid actor1 actor2 peer1 peer2 role1 role2 #i #j.
+    ((Start( tid, actor1, peer1, role1 ) @ #i) ∧
+     (Start( tid, actor2, peer2, role2 ) @ #j)) ⇒
+    ((((#i = #j) ∧ (actor1 = actor2)) ∧ (peer1 = peer2)) ∧
+     (role1 = role2))"
+/*
+guarded formula characterizing all counter-examples:
+"∃ tid actor1 actor2 peer1 peer2 role1 role2 #i #j.
+  (Start( tid, actor1, peer1, role1 ) @ #i) ∧
+  (Start( tid, actor2, peer2, role2 ) @ #j)
+ ∧
+  ((¬(#i = #j)) ∨
+   (¬(actor1 = actor2)) ∨
+   (¬(peer1 = peer2)) ∨
+   (¬(role1 = role2)))"
+*/
+simplify
+solve( Start( tid, actor1, peer1, role1 ) @ #i )
+  case C_0
+  solve( Start( ~tid, actor2, peer2, role2 ) @ #j )
+    case C_0
+    by contradiction /* from formulas */
+  next
+    case S_0
+    by solve( !Exporters( ~ms, 'server', ~tid, hccc, hccs, fmc, fms
+              ) ▶₀ #j )
+  qed
+next
+  case S_0
+  solve( ServerStart( ~tid ) ▶₁ #i )
+    case Create_TLS_channel
+    solve( Start( ~tid, actor2, peer2, role2 ) @ #j )
+      case S_0
+      solve( ServerStart( ~tid ) ▶₁ #j )
+        case Create_TLS_channel
+        by contradiction /* from formulas */
+      qed
+    qed
+  qed
+qed
+
+lemma tid_invariant [use_induction, reuse]:
+  all-traces
+  "∀ tid actor peer role #i.
+    (Instance( tid, actor, peer, role ) @ #i) ⇒
+    (∃ #j. (Start( tid, actor, peer, role ) @ #j) ∧ (#j < #i))"
+/*
+guarded formula characterizing all counter-examples:
+"∃ tid actor peer role #i.
+  (Instance( tid, actor, peer, role ) @ #i)
+ ∧
+  ∀ #j. (Start( tid, actor, peer, role ) @ #j) ⇒ ¬(#j < #i)"
+*/
+induction
+  case empty_trace
+  by contradiction /* from formulas */
+next
+  case non_empty_trace
+  simplify
+  solve( Instance( tid, actor, peer, role ) @ #i )
+    case C_Recv
+    solve( State( ~tid, 'C0', $C, $S, 'client' ) ▶₀ #i )
+      case C_0
+      by contradiction /* from formulas */
+    next
+      case C_Recv
+      by contradiction /* from formulas */
+    next
+      case C_Send
+      by contradiction /* from formulas */
+    qed
+  next
+    case C_Send
+    solve( State( ~tid, 'C0', $C, $S, 'client' ) ▶₀ #i )
+      case C_0
+      by contradiction /* from formulas */
+    next
+      case C_Recv
+      by contradiction /* from formulas */
+    next
+      case C_Send
+      by contradiction /* from formulas */
+    qed
+  next
+    case S_Recv
+    solve( State( ~tid, 'S0', $S, $C, 'server' ) ▶₀ #i )
+      case S_0
+      by contradiction /* from formulas */
+    next
+      case S_Recv
+      by contradiction /* from formulas */
+    next
+      case S_Send
+      by contradiction /* from formulas */
+    qed
+  next
+    case S_Send
+    solve( State( ~tid, 'S0', $S, $C, 'server' ) ▶₀ #i )
+      case S_0
+      by contradiction /* from formulas */
+    next
+      case S_Recv
+      by contradiction /* from formulas */
+    next
+      case S_Send
+      by contradiction /* from formulas */
+    qed
+  qed
+qed
+
+lemma one_start_per_tid [reuse]:
+  all-traces
+  "∀ tid actor actor2 peer peer2 role role2 #i #j.
+    ((Start( tid, actor, peer, role ) @ #i) ∧
+     (Start( tid, actor2, peer2, role2 ) @ #j)) ⇒
+    (#i = #j)"
+/*
+guarded formula characterizing all counter-examples:
+"∃ tid actor actor2 peer peer2 role role2 #i #j.
+  (Start( tid, actor, peer, role ) @ #i) ∧
+  (Start( tid, actor2, peer2, role2 ) @ #j)
+ ∧
+  ¬(#i = #j)"
+*/
+simplify
+solve( Start( tid, actor, peer, role ) @ #i )
+  case C_0
+  solve( Start( ~tid, actor2, peer2, role2 ) @ #j )
+    case C_0
+    by contradiction /* from formulas */
+  next
+    case S_0
+    by solve( ServerStart( ~tid ) ▶₁ #j )
+  qed
+next
+  case S_0
+  solve( ServerStart( ~tid ) ▶₁ #i )
+    case Create_TLS_channel
+    solve( Start( ~tid, actor2, peer2, role2 ) @ #j )
+      case S_0
+      solve( ServerStart( ~tid ) ▶₁ #j )
+        case Create_TLS_channel
+        by contradiction /* from formulas */
+      qed
+    qed
+  qed
+qed
+
+lemma exists_Start:
+  exists-trace
+  "∃ tid actor peer role #j. Start( tid, actor, peer, role ) @ #j"
+/*
+guarded formula characterizing all satisfying traces:
+"∃ tid actor peer role #j. (Start( tid, actor, peer, role ) @ #j)"
+*/
+simplify
+solve( Start( tid, actor, peer, role ) @ #j )
+  case C_0
+  SOLVED // trace found
+next
+  case S_0
+  solve( !Exporters( ~ms, 'server', ~tid, hccc, hccs, fmc, fms
+         ) ▶₀ #j )
+    case Create_TLS_channel
+    solve( ServerStart( ~tid ) ▶₁ #j )
+      case Create_TLS_channel
+      SOLVED // trace found
+    qed
+  qed
+qed
+
+lemma constant_peer:
+  all-traces
+  "∀ tid actor actor2 peer peer2 role role2 #i #j.
+    ((Instance( tid, actor, peer, role ) @ #i) ∧
+     (Start( tid, actor2, peer2, role2 ) @ #j)) ⇒
+    (((actor = actor2) ∧ (peer = peer2)) ∧ (role = role2))"
+/*
+guarded formula characterizing all counter-examples:
+"∃ tid actor actor2 peer peer2 role role2 #i #j.
+  (Instance( tid, actor, peer, role ) @ #i) ∧
+  (Start( tid, actor2, peer2, role2 ) @ #j)
+ ∧
+  ((¬(actor = actor2)) ∨ (¬(peer = peer2)) ∨ (¬(role = role2)))"
+*/
+induction
+  case empty_trace
+  by contradiction /* from formulas */
+next
+  case non_empty_trace
+  simplify
+  solve( Start( tid, actor, peer, role ) @ #j )
+    case C_0
+    solve( Instance( ~tid, $C, $S, 'client' ) @ #i )
+      case C_Recv
+      solve( Start( ~tid, actor2, peer2, role2 ) @ #j )
+        case C_0
+        by contradiction /* from formulas */
+      qed
+    next
+      case C_Send
+      solve( Start( ~tid, actor2, peer2, role2 ) @ #j )
+        case C_0
+        by contradiction /* from formulas */
+      qed
+    qed
+  next
+    case S_0
+    solve( Start( ~tid, actor2, peer2, role2 ) @ #j )
+      case S_0
+      by contradiction /* from formulas */
+    qed
+  qed
+qed
+
+lemma can_loop_S_Send:
+  exists-trace
+  "∃ tid #j #k.
+    ((S_Send( tid ) @ #j) ∧ (S_Send( tid ) @ #k)) ∧ (#j < #k)"
+/*
+guarded formula characterizing all satisfying traces:
+"∃ tid #j #k.
+  (S_Send( tid ) @ #j) ∧ (S_Send( tid ) @ #k) ∧ #j < #k"
+*/
+simplify
+solve( Start( ~tid, $S, $C, 'server' ) @ #j.1 )
+  case S_0
+  solve( State( ~tid, 'S0', $S.1, $C.1, 'server' ) ▶₀ #k )
+    case S_0
+    by sorry
+  next
+    case S_Recv
+    by sorry
+  next
+    case S_Send
+    solve( State( ~tid, 'S0', $S.1, $C.1, 'server' ) ▶₀ #vr )
+      case S_0
+      solve( State( ~tid, 'S0', $S, $C, 'server' ) ▶₀ #j )
+        case S_0
+        solve( !Exporters( ~ms.1, 'server', ~tid, hccc, hccs, fmc, fms
+               ) ▶₂ #k )
+          case Create_TLS_channel
+          solve( !Ltk( $S, ~ltkS.1 ) ▶₃ #k )
+            case Register_pk
+            SOLVED // trace found
+          qed
+        qed
+      next
+        case S_Recv
+        by sorry
+      next
+        case S_Send
+        by sorry
+      qed
+    next
+      case S_Recv
+      by sorry
+    next
+      case S_Send
+      by sorry
+    qed
+  qed
+qed
+
+lemma can_loop_C_Send:
+  exists-trace
+  "∃ tid #j #k.
+    ((C_Send( tid ) @ #j) ∧ (C_Send( tid ) @ #k)) ∧ (#j < #k)"
+/*
+guarded formula characterizing all satisfying traces:
+"∃ tid #j #k.
+  (C_Send( tid ) @ #j) ∧ (C_Send( tid ) @ #k) ∧ #j < #k"
+*/
+simplify
+solve( Start( ~tid, $C, $S, 'client' ) @ #j.1 )
+  case C_0
+  solve( State( ~tid, 'C0', $C.1, $S.1, 'client' ) ▶₀ #k )
+    case C_0
+    by sorry
+  next
+    case C_Recv
+    by sorry
+  next
+    case C_Send
+    solve( State( ~tid, 'C0', $C.1, $S.1, 'client' ) ▶₀ #vr )
+      case C_0
+      solve( !Exporters( ~ms, 'client', ~tid, hccc, hccs, fmc, fms
+             ) ▶₂ #j )
+        case Create_TLS_channel
+        solve( !Ltk( $C, ~ltkC ) ▶₃ #j )
+          case Register_pk
+          solve( !Exporters( ~ms.1, 'client', ~tid, hccc, hccs, fmc, fms
+                 ) ▶₂ #k )
+            case Create_TLS_channel
+            solve( !Ltk( $C, ~ltkC.1 ) ▶₃ #k )
+              case Register_pk
+              solve( State( ~tid, 'C0', $C, $S, 'client' ) ▶₀ #j )
+                case C_0
+                SOLVED // trace found
+              next
+                case C_Recv
+                by sorry
+              next
+                case C_Send
+                by sorry
+              qed
+            qed
+          qed
+        qed
+      qed
+    next
+      case C_Recv
+      by sorry
+    next
+      case C_Send
+      by sorry
+    qed
+  qed
+qed
+
+lemma can_loop_S_Recv:
+  exists-trace
+  "∃ tid #j #k.
+    ((S_Recv( tid ) @ #j) ∧ (S_Recv( tid ) @ #k)) ∧ (#j < #k)"
+/*
+guarded formula characterizing all satisfying traces:
+"∃ tid #j #k.
+  (S_Recv( tid ) @ #j) ∧ (S_Recv( tid ) @ #k) ∧ #j < #k"
+*/
+simplify
+solve( Start( ~tid, $S, $C, 'server' ) @ #j.1 )
+  case S_0
+  solve( TLS_Recv( ~tid, $C.1, $S.1,
+                   <<'11', certificate_request_context.1, pk(~ltkC.1)>, 
+                    <'15', 
+                     sign(<'ExportedAuthenticator', h(<hccc.1, pk(~ltkC.1)>)>, ~ltkC.1)
+                    >, 
+                    '20', 
+                    hmac(<fmc.1, hccc.1, 
+                          <'11', certificate_request_context.1, pk(~ltkC.1)>, '15', 
+                          sign(<'ExportedAuthenticator', h(<hccc.1, pk(~ltkC.1)>)>, ~ltkC.1)
+                         >)
+                   >
+         ) ▶₁ #k )
+    case Send_TLS_Channel_owner
+    solve( State( ~tid.1, 'C0', $C.1, $S.1, 'client' ) ▶₀ #vr.1 )
+      case C_0
+      by sorry
+    next
+      case C_Recv
+      by sorry
+    next
+      case C_Send
+      solve( State( ~tid.1, 'C0', $C.1, $S.1, 'client' ) ▶₀ #vr.5 )
+        case C_0
+        solve( State( ~tid, 'S0', $S.1, $C.1, 'server' ) ▶₀ #k )
+          case S_0
+          by sorry
+        next
+          case S_Recv
+          solve( State( ~tid, 'S0', $S.1, $C.1, 'server' ) ▶₀ #vr.7 )
+            case S_0
+            solve( TLS_Recv( ~tid, $C, $S,
+                             <<'11', certificate_request_context, pk(~ltkC)>, 
+                              <'15', sign(<'ExportedAuthenticator', h(<hccc, pk(~ltkC)>)>, ~ltkC)
+                              >, 
+                              '20', 
+                              hmac(<fmc, hccc, <'11', certificate_request_context, pk(~ltkC)>, 
+                                    '15', 
+                                    sign(<'ExportedAuthenticator', h(<hccc, pk(~ltkC)>)>, ~ltkC)>)
+                             >
+                   ) ▶₁ #j )
+              case Send_TLS_Channel_owner
+              solve( !Exporters( ~ms.1, 'server', ~tid,
+                                 Expand(Expand(Expand(~ms,
+                                                      <'32', 'TLS13exportermastersecret', h(~n)>,
+                                                      '32'),
+                                               <'32', 
+                                                'EXPORTER_clientauthenticatorhandshakecontext', 
+                                                'empty'>,
+                                               '32'),
+                                        <'32', 'exporter', h(<'empty', '32'>)>, '32'),
+                                 hccs,
+                                 Expand(Expand(Expand(~ms,
+                                                      <'32', 'TLS13exportermastersecret', h(~n)>,
+                                                      '32'),
+                                               <'32', 'EXPORTER_clientauthenticatorfinishedkey', 
+                                                'empty'>,
+                                               '32'),
+                                        <'32', 'exporter', h(<'empty', '32'>)>, '32'),
+                                 fms
+                     ) ▶₂ #j )
+                case Create_TLS_channel
+                solve( !Pk( $C, pk(~ltkC) ) ▶₃ #j )
+                  case Register_pk
+                  solve( !Exporters( ~ms.1, 'server', ~tid,
+                                     Expand(Expand(Expand(~ms,
+                                                          <'32', 'TLS13exportermastersecret', h(~n)
+                                                          >,
+                                                          '32'),
+                                                   <'32', 
+                                                    'EXPORTER_clientauthenticatorhandshakecontext', 
+                                                    'empty'>,
+                                                   '32'),
+                                            <'32', 'exporter', h(<'empty', '32'>)>, '32'),
+                                     hccs,
+                                     Expand(Expand(Expand(~ms,
+                                                          <'32', 'TLS13exportermastersecret', h(~n)
+                                                          >,
+                                                          '32'),
+                                                   <'32', 
+                                                    'EXPORTER_clientauthenticatorfinishedkey', 
+                                                    'empty'>,
+                                                   '32'),
+                                            <'32', 'exporter', h(<'empty', '32'>)>, '32'),
+                                     fms
+                         ) ▶₂ #k )
+                    case Create_TLS_channel
+                    solve( !Pk( $C, pk(~ltkC.1) ) ▶₃ #k )
+                      case Register_pk
+                      solve( Start( ~tid.1, $C, $S, 'client' ) @ #vr.4 )
+                        case C_0
+                        solve( State( ~tid, 'S0', $S, $C, 'server' ) ▶₀ #j )
+                          case S_0
+                          solve( State( ~tid.1, 'C0', $C, $S, 'client' ) ▶₀ #vr.9 )
+                            case C_0
+                            SOLVED // trace found
+                          next
+                            case C_Recv
+                            by sorry
+                          next
+                            case C_Send
+                            by sorry
+                          qed
+                        next
+                          case S_Recv
+                          by sorry
+                        next
+                          case S_Send
+                          by sorry
+                        qed
+                      qed
+                    qed
+                  qed
+                qed
+              qed
+            qed
+          next
+            case S_Recv
+            by sorry
+          next
+            case S_Send
+            by sorry
+          qed
+        next
+          case S_Send
+          by sorry
+        qed
+      next
+        case C_Recv
+        by sorry
+      next
+        case C_Send
+        by sorry
+      qed
+    qed
+  qed
+qed
+
+lemma can_loop_C_Recv:
+  exists-trace
+  "∃ tid #j #k.
+    ((C_Recv( tid ) @ #j) ∧ (C_Recv( tid ) @ #k)) ∧ (#j < #k)"
+/*
+guarded formula characterizing all satisfying traces:
+"∃ tid #j #k.
+  (C_Recv( tid ) @ #j) ∧ (C_Recv( tid ) @ #k) ∧ #j < #k"
+*/
+simplify
+solve( Start( ~tid, $C, $S, 'client' ) @ #j.1 )
+  case C_0
+  solve( TLS_Recv( ~tid, $C.1, $S.1,
+                   <<'11', certificate_request_context.1, pk(~ltkS.1)>, 
+                    <'15', 
+                     sign(<'ExportedAuthenticator', h(<hccs.1, pk(~ltkS.1)>)>, ~ltkS.1)
+                    >, 
+                    '20', 
+                    hmac(<fms.1, hccs.1, 
+                          <'11', certificate_request_context.1, pk(~ltkS.1)>, '15', 
+                          sign(<'ExportedAuthenticator', h(<hccs.1, pk(~ltkS.1)>)>, ~ltkS.1)
+                         >)
+                   >
+         ) ▶₁ #k )
+    case Send_TLS_Channel_target
+    solve( Start( ~tid.1, $S.1, $C.1, 'server' ) @ #j.2 )
+      case S_0
+      solve( State( ~tid.1, 'S0', $S.1, $C.1, 'server' ) ▶₀ #vr.1 )
+        case S_0
+        by sorry
+      next
+        case S_Recv
+        by sorry
+      next
+        case S_Send
+        solve( State( ~tid.1, 'S0', $S.1, $C.1, 'server' ) ▶₀ #vr.4 )
+          case S_0
+          solve( State( ~tid, 'C0', $C.1, $S.1, 'client' ) ▶₀ #k )
+            case C_0
+            by sorry
+          next
+            case C_Recv
+            solve( State( ~tid, 'C0', $C.1, $S.1, 'client' ) ▶₀ #vr.6 )
+              case C_0
+              solve( !Exporters( ~ms, 'client', ~tid, hccc, hccs, fmc, fms
+                     ) ▶₂ #j )
+                case Create_TLS_channel
+                solve( !Exporters( ~ms.1, 'client', ~tid, hccc,
+                                   Expand(Expand(Expand(~ms,
+                                                        <'32', 'TLS13exportermastersecret', h(~n)>,
+                                                        '32'),
+                                                 <'32', 
+                                                  'EXPORTER_serverauthenticatorhandshakecontext', 
+                                                  'empty'>,
+                                                 '32'),
+                                          <'32', 'exporter', h(<'empty', '32'>)>, '32'),
+                                   fmc,
+                                   Expand(Expand(Expand(~ms,
+                                                        <'32', 'TLS13exportermastersecret', h(~n)>,
+                                                        '32'),
+                                                 <'32', 'EXPORTER_serverauthenticatorfinishedkey', 
+                                                  'empty'>,
+                                                 '32'),
+                                          <'32', 'exporter', h(<'empty', '32'>)>, '32')
+                       ) ▶₂ #k )
+                  case Create_TLS_channel
+                  solve( TLS_Recv( ~tid, $C, $S,
+                                   <<'11', certificate_request_context, pk(~ltkS)>, 
+                                    <'15', 
+                                     sign(<'ExportedAuthenticator', 
+                                           h(<
+                                              Expand(Expand(Expand(~ms,
+                                                                   <'32', 
+                                                                    'TLS13exportermastersecret', 
+                                                                    h(~n)>,
+                                                                   '32'),
+                                                            <'32', 
+                                                             'EXPORTER_serverauthenticatorhandshakecontext', 
+                                                             'empty'>,
+                                                            '32'),
+                                                     <'32', 'exporter', h(<'empty', '32'>)>, '32'), 
+                                              pk(~ltkS)>)
+                                          >,
+                                          ~ltkS)
+                                    >, 
+                                    '20', 
+                                    hmac(<
+                                          Expand(Expand(Expand(~ms,
+                                                               <'32', 'TLS13exportermastersecret', 
+                                                                h(~n)>,
+                                                               '32'),
+                                                        <'32', 
+                                                         'EXPORTER_serverauthenticatorfinishedkey', 
+                                                         'empty'>,
+                                                        '32'),
+                                                 <'32', 'exporter', h(<'empty', '32'>)>, '32'), 
+                                          Expand(Expand(Expand(~ms,
+                                                               <'32', 'TLS13exportermastersecret', 
+                                                                h(~n)>,
+                                                               '32'),
+                                                        <'32', 
+                                                         'EXPORTER_serverauthenticatorhandshakecontext', 
+                                                         'empty'>,
+                                                        '32'),
+                                                 <'32', 'exporter', h(<'empty', '32'>)>, '32'), 
+                                          <'11', certificate_request_context, pk(~ltkS)>, '15', 
+                                          sign(<'ExportedAuthenticator', 
+                                                h(<
+                                                   Expand(Expand(Expand(~ms,
+                                                                        <'32', 
+                                                                         'TLS13exportermastersecret', 
+                                                                         h(~n)>,
+                                                                        '32'),
+                                                                 <'32', 
+                                                                  'EXPORTER_serverauthenticatorhandshakecontext', 
+                                                                  'empty'>,
+                                                                 '32'),
+                                                          <'32', 'exporter', h(<'empty', '32'>)>,
+                                                          '32'), 
+                                                   pk(~ltkS)>)
+                                               >,
+                                               ~ltkS)
+                                         >)
+                                   >
+                         ) ▶₁ #j )
+                    case Send_TLS_Channel_target
+                    solve( !Pk( $S, pk(~ltkS) ) ▶₃ #j )
+                      case Register_pk
+                      solve( !Pk( $S, pk(~ltkS.1) ) ▶₃ #k )
+                        case Register_pk
+                        solve( State( ~tid, 'C0', $C, $S, 'client' ) ▶₀ #j )
+                          case C_0
+                          solve( State( ~tid.1, 'S0', $S, $C, 'server' ) ▶₀ #vr.8 )
+                            case S_0
+                            SOLVED // trace found
+                          next
+                            case S_Recv
+                            by sorry
+                          next
+                            case S_Send
+                            by sorry
+                          qed
+                        next
+                          case C_Recv
+                          by sorry
+                        next
+                          case C_Send
+                          by sorry
+                        qed
+                      qed
+                    qed
+                  qed
+                qed
+              qed
+            next
+              case C_Recv
+              by sorry
+            next
+              case C_Send
+              by sorry
+            qed
+          next
+            case C_Send
+            by sorry
+          qed
+        next
+          case S_Recv
+          by sorry
+        next
+          case S_Send
+          by sorry
+        qed
+      qed
+    qed
+  qed
+qed
+
+lemma secret_session_keys:
+  all-traces
+  "∀ ms transcript #i.
+    (SessionKey( ms, transcript ) @ #i) ⇒
+    ((¬(∃ #j. K( ms ) @ #j)) ∧ (¬(∃ #k. K( transcript ) @ #k)))"
+/*
+guarded formula characterizing all counter-examples:
+"∃ ms transcript #i.
+  (SessionKey( ms, transcript ) @ #i)
+ ∧
+  ((∃ #j. (K( ms ) @ #j)) ∨ (∃ #k. (K( transcript ) @ #k)))"
+*/
+simplify
+solve( (∃ #j. (K( ~n ) @ #j))  ∥ (∃ #k. (K( ~n.1 ) @ #k)) )
+  case case_1
+  solve( Create_TLS_Channel( owner_host, owner_cid, target_host
+         ) ▶₃ #i )
+    case C_0
+    by solve( !KU( ~n ) @ #vk )
+  qed
+next
+  case case_2
+  solve( Create_TLS_Channel( owner_host, owner_cid, target_host
+         ) ▶₃ #i )
+    case C_0
+    by solve( !KU( ~n.1 ) @ #vk )
+  qed
+qed
+
+/* All well-formedness checks were successful. */
+
+end

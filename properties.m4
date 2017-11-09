@@ -15,7 +15,17 @@ lemma_one_start_per_tid
 
 lemma_exists_Start
 
-lemma_can_loop
+dnl lemma_exists_state(C_Send)
+dnl lemma_exists_state(S_Send)
+dnl lemma_exists_state(C_Recv)
+dnl lemma_exists_state(S_Recv)
+
+lemma_constant_peer
+
+lemma_can_loop_state(S_Send)
+lemma_can_loop_state(C_Send)
+lemma_can_loop_state(S_Recv)
+lemma_can_loop_state(C_Recv)
 
 lemma_secret_session_keys
 
