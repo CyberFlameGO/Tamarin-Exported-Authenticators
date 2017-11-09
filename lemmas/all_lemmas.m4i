@@ -28,7 +28,7 @@ lemma can_loop:
 dnl
 define(<!lemma_secret_session_keys!>,<!dnl
 lemma secret_session_keys:
-  "All ms transcript #i. SessionKey(ms, transcript)@i ==> not (Ex #j. KU(ms)@j) & not (Ex #k. KU(transcript)@k)"
+  "All ms transcript #i. SessionKey(ms, transcript)@i ==> not (Ex #j. K(ms)@j) & not (Ex #k. K(transcript)@k)"
 !>)dnl
 dnl
 define(<!lemma_cert_ownership!>,<!dnl
