@@ -1,13 +1,13 @@
 define(<!lemma_exists_Start!>,<!dnl
 lemma exists_Start:
-    exists-trace
-    "Ex tid actor peer role #j. Start(tid, actor, peer, role)@j"
+exists-trace
+  "Ex tid actor peer role #j. Start(tid, actor, peer, role)@j"
 !>)dnl
 dnl
 define(<!lemma_tid_invariant!>, <!
 lemma tid_invariant [use_induction, reuse]:
   "All tid actor peer role #i. Instance(tid, actor, peer, role)@i==>
-      (Ex #j. Start(tid, actor, peer, role)@j & (#j < #i))"
+    (Ex #j. Start(tid, actor, peer, role)@j & (#j < #i))"
 !>)dnl
 dnl
 define(<!lemma_one_start_per_tid!>, <!
@@ -16,14 +16,14 @@ lemma one_start_per_tid [reuse]:
 !>)dnl
 dnl
 define(<!lemma_uniq_tid!>,<!dnl
-lemma uniq_C_Send:
-    "All tid actor1 actor2 peer1 peer2 role1 role2 #i #j. Start(tid, actor1, peer1, role1)@i & Start(tid, actor2, peer2, role2)@j ==>  #i=#j & actor1=actor2 & peer1=peer2 & role1=role2"
+lemma uniq_Start:
+  "All tid actor1 actor2 peer1 peer2 role1 role2 #i #j. Start(tid, actor1, peer1, role1)@i & Start(tid, actor2, peer2, role2)@j ==>  #i=#j & actor1=actor2 & peer1=peer2 & role1=role2"
 !>)dnl
 dnl
 define(<!lemma_exists_state!>,<!dnl
 lemma exists_$1:
-    exists-trace
-    "Ex tid #j. $1(tid)@j"
+exists-trace
+  "Ex tid #j. $1(tid)@j"
 !>)dnl   
 dnl
 define(<!lemma_constant_peer!>, <!dnl
@@ -33,8 +33,8 @@ lemma constant_peer:
 dnl
 define(<!lemma_can_loop_state!>,<!dnl
 lemma can_loop_$1:
-    exists-trace
-    "Ex tid #j #k. $1(tid)@j & $1(tid)@k &  (#j < #k)"
+exists-trace
+  "Ex tid #j #k. $1(tid)@j & $1(tid)@k &  (#j < #k)"
 !>)dnl   
 dnl
 define(<!lemma_secret_session_keys!>,<!dnl
@@ -44,6 +44,6 @@ lemma secret_session_keys:
 dnl
 define(<!lemma_cert_ownership!>,<!dnl
 lemma cert_ownership:
-  "All actor peer ltkC #k. Recv(actor, peer, pk(ltkC))@k ==> (Ex #i. Owns(peer, ltkC)@i & (#i<#k)) | (Ex #j. RevLtk(peer)@j & (#j<#k))"
+  "All actor peer ltkD del #k. Recv(actor, peer, <del, pk(ltkD)>)@k ==> (Ex #i. Owns(peer, <del, ltkD>)@i & (#i<#k)) | (Ex #j. RevLtk(del)@j & (#j<#k))"
 !>)dnl
 dnl
