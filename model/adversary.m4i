@@ -21,12 +21,12 @@ rule Adv_Send_TLS:
   [ In(<~owner_cid, m>)
   , !TLS_Channel(ms, TLS_transcript, auth_status, $I, ~owner_cid, $S, cid)
   ]
-  -->
+  --[ A_Send(~owner_cid) ]->
   [ TLS_Send(~owner_cid, $I, $S, m) ]
 
 rule Adv_Recv_TLS:
   [ TLS_Recv(~owner_cid, from_host, to_host, msg)
   , In(<~owner_cid>)
   ]
-  -->
+  --[ A_Recv(~owner_cid) ]->
   [ Out(<from_host, to_host, msg>) ] 

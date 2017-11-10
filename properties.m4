@@ -17,8 +17,10 @@ lemma_exists_Start
 
 dnl lemma_exists_state(C_Send)
 dnl lemma_exists_state(S_Send)
+dnl lemma_exists_state(A_Send)
 dnl lemma_exists_state(C_Recv)
 dnl lemma_exists_state(S_Recv)
+dnl lemma_exists_state(A_Recv)
 
 lemma_constant_peer
 
