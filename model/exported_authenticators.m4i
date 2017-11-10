@@ -13,7 +13,7 @@ rule Get_pk:
   -->
      [ Out(pubkey) ]
 
-rule Create_TLS_channel:
+rule Create_TLS_channel_bi:
     [ Fr(ms)
     , Fr(TLS_transcript) 
     , Fr(cid)
@@ -22,24 +22,48 @@ rule Create_TLS_channel:
   --[
       SessionKey(ms, TLS_transcript)
     ]->
-    [ !TLS_Channel(ms, TLS_transcript, owner_host, owner_cid, target_host, cid)
+    [ !TLS_Channel(ms, TLS_transcript, 'bi', owner_host, owner_cid, target_host, cid)
     , !Exporters(ms, 'server',  cid, Handshake_Context(client), Handshake_Context(server), Finished_MAC(client), Finished_MAC(server))
     , ServerStart(cid)
     , !Exporters(ms, 'client', owner_cid, Handshake_Context(client), Handshake_Context(server), Finished_MAC(client), Finished_MAC(server))
     ]
 
-rule Send_TLS_Channel_owner:
+rule Create_TLS_channel_uni:
+    [ Fr(ms)
+    , Fr(TLS_transcript) 
+    , Fr(cid)
+    , Create_TLS_Channel(owner_host, owner_cid, target_host)
+    ]
+  --[
+      SessionKey(ms, TLS_transcript)
+    ]->
+    [ !TLS_Channel(ms, TLS_transcript, 'uni', 'place_holder', owner_cid, target_host, cid)
+    , !Exporters(ms, 'server',  cid, Handshake_Context(client), Handshake_Context(server), Finished_MAC(client), Finished_MAC(server))
+    , ServerStart(cid)
+    , !Exporters(ms, 'client', owner_cid, Handshake_Context(client), Handshake_Context(server), Finished_MAC(client), Finished_MAC(server))
+    ]
+
+rule Send_TLS_Channel_owner_bi:
     [ TLS_Send(cid, from_host, to_host, msg)
-    , !TLS_Channel(ms, TLS_transcript, owner_host, owner_cid, target_host, target_cid)
+    , !TLS_Channel(ms, TLS_transcript, 'bi', owner_host, owner_cid, target_host, target_cid)
     ]
   --[ Check_pair_or_swapped(from_host, to_host, owner_host, target_host)
     , Eq(cid, owner_cid)
     ]->
     [ TLS_Recv(target_cid, from_host, to_host, msg) ]
 
+rule Send_TLS_Channel_owner_uni:
+    [ TLS_Send(cid, from_host, to_host, msg)
+    , !TLS_Channel(ms, TLS_transcript, 'uni', owner_host, owner_cid, target_host, target_cid)
+    ]
+  --[ Eq(to_host, target_host)
+    , Eq(cid, owner_cid)
+    ]->
+    [ TLS_Recv(target_cid, owner_host, to_host, msg) ]
+
 rule Send_TLS_Channel_target:
     [ TLS_Send(cid, from_host, to_host, msg)
-    , !TLS_Channel(ms, TLS_transcript, owner_host, owner_cid, target_host, target_cid)
+    , !TLS_Channel(ms, TLS_transcript, auth_status, owner_host, owner_cid, target_host, target_cid)
     ]
   --[ Check_pair_or_swapped(from_host, to_host, owner_host, target_host)
     , Eq(cid, target_cid)
@@ -93,7 +117,7 @@ rule C_Recv:
     exp_verify_data = hmac(fms, <hccs, Certificate, CertificateVerify>)
   in
     [ State(~tid, 'C0', C, S, 'client')
-    , TLS_Recv(~tid, C, S, <Certificate, CertificateVerify, Finished>)
+    , TLS_Recv(~tid, $PH, S, <Certificate, CertificateVerify, Finished>)
     , !Exporters(~ms, 'client', ~tid, hccc, hccs, fmc, fms)
     , !Pk($A, pk(~ltkA))
     ]
