@@ -29,6 +29,7 @@ lemma_can_loop_state(C_Send)
 lemma_can_loop_state(S_Recv)
 lemma_can_loop_state(C_Recv)
 
+lemma_reachable_session_keys
 lemma_secret_session_keys
 
 lemma_cert_ownership

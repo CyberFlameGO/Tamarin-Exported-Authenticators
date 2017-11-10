@@ -42,6 +42,12 @@ lemma secret_session_keys:
   "All ms transcript #i. SessionKey(ms, transcript)@i ==> not (Ex #j. K(ms)@j) & not (Ex #k. K(transcript)@k)"
 !>)dnl
 dnl
+define(<!lemma_reachable_session_keys!>,<!dnl
+lemma reachable_session_keys:
+  exists-trace
+  "Ex ms transcript #i. SessionKey(ms, transcript)@i"
+!>)dnl
+dnl
 define(<!lemma_cert_ownership!>,<!dnl
 lemma cert_ownership:
   "All actor peer ltkD del #k. Recv(actor, peer, <del, pk(ltkD)>)@k ==> (Ex #i. Owns(peer, <del, ltkD>)@i & (#i<#k)) | (Ex #j. RevLtk(del)@j & (#j<#k))"
