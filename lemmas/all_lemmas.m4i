@@ -50,6 +50,6 @@ lemma reachable_session_keys:
 dnl
 define(<!lemma_cert_ownership!>,<!dnl
 lemma cert_ownership:
-  "All actor peer ltkD del #k. Recv(actor, peer, <del, pk(ltkD)>)@k ==> (Ex #i. Owns(peer, <del, ltkD>)@i & (#i<#k)) | (Ex #j. RevLtk(del)@j & (#j<#k))"
+"All actor ms ltkD del #k. Recv(actor, ms, <del, pk(ltkD)>)@k ==> (Ex peer #i. Owns(peer, ms, <del, ltkD>)@i & (#i<#k)) | (Ex #j. RevLtk(del)@j & (#j<#k))"
 !>)dnl
 dnl
