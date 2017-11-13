@@ -101,7 +101,7 @@ rule C_Send:
     , DelegateLtk($C, ~ltkA)
     ]
   --[ C_Send(~tid)
-    , Owns($C, <$A, ~ltkA>)
+    , Owns(C, ~ms, <$A, ~ltkA>)
     , Instance(~tid, C, S, 'client')
     ]->
     [ State(~tid, 'C0', C, S, 'client')
@@ -124,7 +124,7 @@ rule C_Recv:
   --[ C_Recv(~tid)
     , Eq(verify(signature, sig_msg, pk(~ltkA)), true)
     , Eq(verify_data, exp_verify_data)
-    , Recv(C, S, <$A, pk(~ltkA)>)
+    , Recv(C, ~ms, <$A, pk(~ltkA)>)
     , Instance(~tid, C, S, 'client')
     ]->
     [ State(~tid, 'C0', C, S, 'client')
@@ -161,7 +161,7 @@ rule S_Recv:
   --[ S_Recv(~tid)
     , Eq(verify(signature, sig_msg, pk(~ltkA)), true)
     , Eq(verify_data,exp_verify_data)
-    , Recv(S, C, <$A, pk(~ltkA)>)
+    , Recv(S, ~ms, <$A, pk(~ltkA)>)
     , Instance(~tid, S, C, 'server')
     ]->
     [ State(~tid, 'S0', S, C, 'server')
@@ -184,7 +184,7 @@ rule S_Send:
     , DelegateLtk($S, ~ltkA)  
     ]
   --[ S_Send(~tid)
-    , Owns($S, <$A, ~ltkA>)
+    , Owns(S, ~ms, <$A, ~ltkA>)
     , Instance(~tid, S, C, 'server')
     ]->
     [ State(~tid, 'S0', S, C, 'server')
