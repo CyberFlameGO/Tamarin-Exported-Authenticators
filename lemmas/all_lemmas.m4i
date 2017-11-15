@@ -50,6 +50,19 @@ lemma reachable_session_keys:
 dnl
 define(<!lemma_cert_ownership!>,<!dnl
 lemma cert_ownership:
-"All actor ms ltkD del #k. Recv(actor, ms, <del, pk(ltkD)>)@k ==> (Ex peer #i. Owns(peer, ms, <del, ltkD>)@i & (#i<#k)) | (Ex #j. RevLtk(del)@j & (#j<#k))"
+  "All actor ms ltkD del role #k. Recv(actor, ms, role, <del, pk(ltkD)>)@k ==> (Ex peer role2 #i. Owns(peer, ms, role2, <del, ltkD>)@i & (#i<#k) & not(role=role2)) | (Ex #j. RevLtk(del)@j & (#j<#k))"
+!>)dnl
+dnl
+define(<!lemma_consistent_nonce!>,<!dnl
+lemma consistent_nonce:
+  "All tid actor peer role actor2 peer2 role2 #i #j. Instance(tid, actor, peer, role)@i & Instance(tid, actor2, peer2, role2)@j ==> actor=actor2 & peer=peer2 & role=role2"
+!>)dnl
+dnl
+define(<!lemma_cert_linking!>,<!dnl
+lemma cert_linking:
+  "All actor ms role ltkD del ltkD2 del2 #j #k. Recv(actor, ms, role, <del, pk(ltkD)>)@j & Recv(actor, ms, role, <del2, pk(ltkD2)>)@k 
+  ==> (Ex peer role2 #h #i. Owns(peer, ms, role2, <del, ltkD>)@h & (#h < #j) & Owns(peer, ms, role2, <del2, ltkD2>)@i & (#i < #k) & not(role=role2)) 
+    | (Ex #l. RevLtk(del)@l & (#l<#k))
+    | (Ex #l. RevLtk(del2)@l & (#l<#k))"
 !>)dnl
 dnl

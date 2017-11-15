@@ -23,6 +23,7 @@ dnl lemma_exists_state(S_Recv)
 dnl lemma_exists_state(A_Recv)
 
 lemma_constant_peer
+lemma_consistent_nonce
 
 lemma_can_loop_state(S_Send)
 lemma_can_loop_state(C_Send)
@@ -34,4 +35,5 @@ lemma_secret_session_keys
 
 lemma_cert_ownership
 
+lemma_cert_linking
 end
