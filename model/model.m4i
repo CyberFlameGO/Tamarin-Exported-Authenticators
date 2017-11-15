@@ -1,0 +1,8 @@
+include(crypto.m4i)dnl
+include(msgs.m4i)dnl
+include(adversary.m4i)dnl
+
+include(pki.m4i)
+include(channel.m4i)
+include(client.m4i)
+include(server.m4i)

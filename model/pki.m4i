@@ -1,0 +1,11 @@
+rule Register_pk:
+    [ Fr(~ltk) ]
+  -->
+    [ !Ltk($A, ~ltk), !Pk($A, pk(~ltk)), DelegateLtk($TP, ~ltk) ]
+
+
+rule Get_pk:
+    [ !Pk(A, pubkey) ]
+  -->
+     [ Out(pubkey) ]
+

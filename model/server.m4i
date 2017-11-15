@@ -1,0 +1,59 @@
+rule S_0:
+  let
+    C=$C
+    S=$S
+  in
+    [ !Exporters(~ms, 'server', ~tid, hccc, hccs, fmc, fms)
+    , ServerStart(~tid)
+    ]
+  --[ Start(~tid, S, C, 'server')
+    , S0(~tid)
+    ]->
+    [ State(~tid, 'S0', S, C, 'server')
+    ]
+
+rule S_Recv:
+  let 
+    C=$C
+    S=$S
+    certificate=pk(~ltkA)
+    sig_msg=signature_input(h(hccc, certificate))
+    exp_verify_data = hmac(fmc, <hccc, Certificate, CertificateVerify>)
+  in
+    [ State(~tid, 'S0', S, C, 'server')
+    , TLS_Recv(~tid, C, S, <Certificate, CertificateVerify, Finished>)
+    , !Exporters(~ms, 'server', ~tid, hccc, hccs, fmc, fms)
+    , !Pk($A, pk(~ltkA))
+    ]
+  --[ S_Recv(~tid)
+    , Eq(verify(signature, sig_msg, pk(~ltkA)), true)
+    , Eq(verify_data,exp_verify_data)
+    , Recv(S, ~ms, 'server', <$A, pk(~ltkA)>)
+    , Instance(~tid, S, C, 'server')
+    ]->
+    [ State(~tid, 'S0', S, C, 'server')
+    , !AcceptOwnership(~tid, C, S, pk(~ltkA))
+    ]
+
+rule S_Send:
+  let
+    C=$C
+    S=$S
+    certificate_request_context=~certificate_request_context
+    certificate=pk(~ltkA)
+    signature=compute_signature(~ltkA, h(hccs, certificate))
+    verify_data = hmac(fms, <hccs, Certificate, CertificateVerify>)
+  in
+    [ State(~tid, 'S0', S, C, 'server')
+    , Fr(~certificate_request_context)
+    , !Exporters(~ms, 'server', ~tid, hccc, hccs, fmc, fms)
+    , !Ltk($A, ~ltkA)
+    , DelegateLtk($S, ~ltkA)  
+    ]
+  --[ S_Send(~tid)
+    , Owns(S, ~ms, 'server', <$A, ~ltkA>)
+    , Instance(~tid, S, C, 'server')
+    ]->
+    [ State(~tid, 'S0', S, C, 'server')
+    , TLS_Send(~tid, C, S, <Certificate, CertificateVerify, Finished>)
+    ]

@@ -1,0 +1,56 @@
+rule Create_TLS_channel_bi:
+    [ Fr(ms)
+    , Fr(TLS_transcript) 
+    , Fr(cid)
+    , Create_TLS_Channel(owner_host, owner_cid, target_host)
+    ]
+  --[
+      SessionKey(ms, TLS_transcript)
+    ]->
+    [ !TLS_Channel(ms, TLS_transcript, 'bi', owner_host, owner_cid, target_host, cid)
+    , !Exporters(ms, 'server',  cid, Handshake_Context(client), Handshake_Context(server), Finished_MAC(client), Finished_MAC(server))
+    , ServerStart(cid)
+    , !Exporters(ms, 'client', owner_cid, Handshake_Context(client), Handshake_Context(server), Finished_MAC(client), Finished_MAC(server))
+    ]
+
+rule Create_TLS_channel_uni:
+    [ Fr(ms)
+    , Fr(TLS_transcript) 
+    , Fr(cid)
+    , Create_TLS_Channel(owner_host, owner_cid, target_host)
+    ]
+  --[
+      SessionKey(ms, TLS_transcript)
+    ]->
+    [ !TLS_Channel(ms, TLS_transcript, 'uni', 'place_holder', owner_cid, target_host, cid)
+    , !Exporters(ms, 'server',  cid, Handshake_Context(client), Handshake_Context(server), Finished_MAC(client), Finished_MAC(server))
+    , ServerStart(cid)
+    , !Exporters(ms, 'client', owner_cid, Handshake_Context(client), Handshake_Context(server), Finished_MAC(client), Finished_MAC(server))
+    ]
+
+rule Send_TLS_Channel_owner_bi:
+    [ TLS_Send(cid, from_host, to_host, msg)
+    , !TLS_Channel(ms, TLS_transcript, 'bi', owner_host, owner_cid, target_host, target_cid)
+    ]
+  --[ Check_pair_or_swapped(from_host, to_host, owner_host, target_host)
+    , Eq(cid, owner_cid)
+    ]->
+    [ TLS_Recv(target_cid, from_host, to_host, msg) ]
+
+rule Send_TLS_Channel_owner_uni:
+    [ TLS_Send(cid, from_host, to_host, msg)
+    , !TLS_Channel(ms, TLS_transcript, 'uni', owner_host, owner_cid, target_host, target_cid)
+    ]
+  --[ Eq(to_host, target_host)
+    , Eq(cid, owner_cid)
+    ]->
+    [ TLS_Recv(target_cid, owner_host, to_host, msg) ]
+
+rule Send_TLS_Channel_target:
+    [ TLS_Send(cid, from_host, to_host, msg)
+    , !TLS_Channel(ms, TLS_transcript, auth_status, owner_host, owner_cid, target_host, target_cid)
+    ]
+  --[ Check_pair_or_swapped(from_host, to_host, owner_host, target_host)
+    , Eq(cid, target_cid)
+    ]->
+    [ TLS_Recv(owner_cid, from_host, to_host, msg) ]

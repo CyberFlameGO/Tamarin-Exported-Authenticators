@@ -1,0 +1,60 @@
+rule C_0:
+  let
+    C=$C
+    S=$S
+  in
+    [ Fr(~tid)
+    ]
+  --[ Start(~tid, C, S, 'client') 
+    , C0(~tid)
+    ]->
+    [ State(~tid, 'C0', C, S, 'client')
+    , Create_TLS_Channel(C, ~tid, S)
+    ]
+
+rule C_Send:
+  let
+    C=$C
+    S=$S
+    certificate_request_context=~certificate_request_context
+    certificate=pk(~ltkA)
+    signature=compute_signature(~ltkA, h(hccc, certificate))
+    verify_data = hmac(fmc, <hccc, Certificate, CertificateVerify>)
+  in
+    [ State(~tid, 'C0', C, S, 'client')
+    , Fr(~certificate_request_context)
+    , !Exporters(~ms, 'client', ~tid, hccc, hccs, fmc, fms)
+    , !Ltk($A, ~ltkA)
+    , DelegateLtk($C, ~ltkA)
+    ]
+  --[ C_Send(~tid)
+    , Owns(C, ~ms, 'client', <$A, ~ltkA>)
+    , Instance(~tid, C, S, 'client')
+    ]->
+    [ State(~tid, 'C0', C, S, 'client')
+    , TLS_Send(~tid, C, S, <Certificate, CertificateVerify, Finished>) 
+    ]
+    
+rule C_Recv:
+  let 
+    C=$C
+    S=$S
+    certificate=pk(~ltkA)
+    sig_msg=signature_input(h(hccs, certificate))
+    exp_verify_data = hmac(fms, <hccs, Certificate, CertificateVerify>)
+  in
+    [ State(~tid, 'C0', C, S, 'client')
+    , TLS_Recv(~tid, $PH, S, <Certificate, CertificateVerify, Finished>)
+    , !Exporters(~ms, 'client', ~tid, hccc, hccs, fmc, fms)
+    , !Pk($A, pk(~ltkA))
+    ]
+  --[ C_Recv(~tid)
+    , Eq(verify(signature, sig_msg, pk(~ltkA)), true)
+    , Eq(verify_data, exp_verify_data)
+    , Recv(C, ~ms, 'client',  <$A, pk(~ltkA)>)
+    , Instance(~tid, C, S, 'client')
+    ]->
+    [ State(~tid, 'C0', C, S, 'client')
+    , !AcceptOwnership(~tid, C, S, pk(~ltkA))
+    ]
+
