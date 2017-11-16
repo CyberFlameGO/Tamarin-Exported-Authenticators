@@ -12,6 +12,22 @@ rule C_0:
     , Create_TLS_Channel(C, ~tid, S)
     ]
 
+rule C_Request:
+  let
+    C=$C
+    S=$S
+    certificate_request_context=~certificate_request_context
+  in
+    [ State(~tid, 'C0', C, S, 'client')
+    , Fr(~certificate_request_context)
+    ]
+  --[ C_Req(~tid, ~certificate_request_context)
+    , Instance(~tid, C, S, 'client')
+    ]->
+    [ State(~tid, 'C0', C, S, 'client')
+    , TLS_Send(~tid, C, S, CertificateRequest)
+    ]
+
 rule C_Send:
   let
     C=$C

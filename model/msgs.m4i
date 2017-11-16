@@ -1,4 +1,8 @@
 define(<!handshake_record!>, <!<$@>!>)
+define(<!CertificateRequest!>, <! handshake_record('13', dnl
+  certificate_request_context, dnl
+  $certificate_extensions dnl
+)!>)
 define(<!Certificate!>, <!handshake_record('11', certificate_request_context, certificate)!>)
 define(<!CertificateVerify!>, <!handshake_record('15', dnl
 dnl  $sig_alg, Removing 
