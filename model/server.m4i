@@ -12,57 +12,28 @@ rule S_0:
     [ State(~tid, 'S0', S, C, 'server')
     ]
 
-rule S_Recv:
-  let 
-    C=$C
-    S=$S
-    certificate=pk(~ltkA)
-    sig_msg=signature_input(h(hccc, certificate))
-    exp_verify_data = hmac(fmc, <hccc, Certificate, CertificateVerify>)
-  in
-    [ State(~tid, 'S0', S, C, 'server')
-    , TLS_Recv(~tid, C, S, <Certificate, CertificateVerify, Finished>)
-    , !Exporters(~ms, 'server', ~tid, hccc, hccs, fmc, fms)
-    , !Pk($A, pk(~ltkA))
-    ]
-  --[ S_Recv(~tid)
-    , Eq(verify(signature, sig_msg, pk(~ltkA)), true)
-    , Eq(verify_data,exp_verify_data)
-    , Recv(S, ~ms, 'server', <$A, pk(~ltkA)>)
-    , Instance(~tid, S, C, 'server')
-    ]->
-    [ State(~tid, 'S0', S, C, 'server')
-    , !AcceptOwnership(~tid, C, S, pk(~ltkA))
-    ]
-
-rule S_Send_Spontaneous:
+rule S_Request:
   let
     C=$C
     S=$S
     certificate_request_context=~certificate_request_context
-    certificate=pk(~ltkA)
-    signature=compute_signature(~ltkA, h(hccs, certificate))
-    verify_data = hmac(fms, <hccs, Certificate, CertificateVerify>)
   in
     [ State(~tid, 'S0', S, C, 'server')
     , Fr(~certificate_request_context)
-    , !Exporters(~ms, 'server', ~tid, hccc, hccs, fmc, fms)
-    , !Ltk($A, ~ltkA)
-    , DelegateLtk($S, ~ltkA)  
     ]
-  --[ S_Send(~tid)
-    , Owns(S, ~ms, 'server', <$A, ~ltkA>)
+  --[ S_Req(~tid, ~certificate_request_context)
     , Instance(~tid, S, C, 'server')
+    , Requested(~tid, S, 'server',  CertificateRequest)
     ]->
     [ State(~tid, 'S0', S, C, 'server')
-    , TLS_Send(~tid, C, S, <Certificate, CertificateVerify, Finished>)
+    , TLS_Send(~tid, C, S, CertificateRequest)
+    , PendingReq(~tid, CertificateRequest)
     ]
 
 rule S_RecvReq:
   let
     C=$C
     S=$S
-    certificate_request_context=~certificate_request_context
   in
     [ State(~tid, 'S0', S, C, 'server')
     , TLS_Recv(~tid, C, S, CertificateRequest)
@@ -82,8 +53,8 @@ rule S_Send:
     S=$S
     certificate_request_context=~certificate_request_context
     certificate=pk(~ltkA)
-    signature=compute_signature(~ltkA, h(hccs, certificate))
-    verify_data = hmac(fms, <hccs, Certificate, CertificateVerify>)
+    signature=compute_signature(~ltkA, h(hccs, CertificateRequest, certificate))
+    verify_data = hmac(fms, <hccs, CertificateRequest, Certificate, CertificateVerify>)
   in
     [ State(~tid, 'S0', S, C, 'server')
     , PendingReq(~tid, CertificateRequest)
@@ -94,7 +65,54 @@ rule S_Send:
   --[ S_Send(~tid)
     , Owns(S, ~ms, 'server', <$A, ~ltkA>)
     , Instance(~tid, S, C, 'server')
+    , Fulfil(~tid, S, 'server', CertificateRequest, <$A, ~ltkA>)
     ]->
     [ State(~tid, 'S0', S, C, 'server')
     , TLS_Send(~tid, C, S, <Certificate, CertificateVerify, Finished>)
+    ]
+
+rule S_Recv:
+  let 
+    C=$C
+    S=$S
+    certificate=pk(~ltkA)
+    sig_msg=signature_input(h(hccc, CertificateRequest, certificate))
+    exp_verify_data = hmac(fmc, <hccc, CertificateRequest, Certificate, CertificateVerify>)
+  in
+    [ State(~tid, 'S0', S, C, 'server')
+    , TLS_Recv(~tid, C, S, <Certificate, CertificateVerify, Finished>)
+    , PendingReq(~tid, CertificateRequest)
+    , !Exporters(~ms, 'server', ~tid, hccc, hccs, fmc, fms)
+    , !Pk($A, pk(~ltkA))
+    ]
+  --[ S_Recv(~tid)
+    , Eq(verify(signature, sig_msg, pk(~ltkA)), true)
+    , Eq(verify_data,exp_verify_data)
+    , Recv(S, ~ms, 'server', <$A, pk(~ltkA)>)
+    , Fulfilled(~tid, S, 'server', CertificateRequest, <$A, pk(~ltkA)>)
+    , Instance(~tid, S, C, 'server')
+    ]->
+    [ State(~tid, 'S0', S, C, 'server')
+    , !AcceptOwnership(~tid, C, S, pk(~ltkA))
+    ]
+
+rule S_Send_Spontaneous:
+  let
+    C=$C
+    S=$S
+    certificate=pk(~ltkA)
+    signature=compute_signature(~ltkA, h(hccs, certificate))
+    verify_data = hmac(fms, <hccs, Certificate_Spontaneous, CertificateVerify>)
+  in
+    [ State(~tid, 'S0', S, C, 'server')
+    , !Exporters(~ms, 'server', ~tid, hccc, hccs, fmc, fms)
+    , !Ltk($A, ~ltkA)
+    , DelegateLtk($S, ~ltkA)  
+    ]
+  --[ S_Send(~tid)
+    , Owns(S, ~ms, 'server', <$A, ~ltkA>)
+    , Instance(~tid, S, C, 'server')
+    ]->
+    [ State(~tid, 'S0', S, C, 'server')
+    , TLS_Send(~tid, C, S, <Certificate_Spontaneous, CertificateVerify, Finished>)
     ]
