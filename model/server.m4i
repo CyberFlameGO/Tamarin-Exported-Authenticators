@@ -27,7 +27,7 @@ rule S_Request:
     ]->
     [ State(~tid, 'S0', S, C, 'server')
     , TLS_Send(~tid, C, S, CertificateRequest)
-    , PendingReq(~tid, CertificateRequest)
+    , PendingReq(~tid, 'server', CertificateRequest)
     ]
 
 rule S_RecvReq:
@@ -44,7 +44,7 @@ rule S_RecvReq:
     , Instance(~tid, S, C, 'server')
     ]->
     [ State(~tid, 'S0', S, C, 'server')
-    , PendingReq(~tid, CertificateRequest)
+    , PendingReq(~tid, 'server', CertificateRequest)
     ]
 
 rule S_Send:
@@ -57,7 +57,7 @@ rule S_Send:
     verify_data = hmac(fms, <hccs, CertificateRequest, Certificate, CertificateVerify>)
   in
     [ State(~tid, 'S0', S, C, 'server')
-    , PendingReq(~tid, CertificateRequest)
+    , PendingReq(~tid, 'server', CertificateRequest)
     , !Exporters(~ms, 'server', ~tid, hccc, hccs, fmc, fms)
     , !Ltk($A, ~ltkA)
     , DelegateLtk($S, ~ltkA)  
@@ -81,7 +81,7 @@ rule S_Recv:
   in
     [ State(~tid, 'S0', S, C, 'server')
     , TLS_Recv(~tid, C, S, <Certificate, CertificateVerify, Finished>)
-    , PendingReq(~tid, CertificateRequest)
+    , PendingReq(~tid, 'server', CertificateRequest)
     , !Exporters(~ms, 'server', ~tid, hccc, hccs, fmc, fms)
     , !Pk($A, pk(~ltkA))
     ]
