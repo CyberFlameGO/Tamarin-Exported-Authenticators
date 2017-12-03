@@ -3,13 +3,45 @@ rule S_0:
     C=$C
     S=$S
   in
-    [ !Exporters(~ms, 'server', ~tid, hccc, hccs, fmc, fms)
-    , ServerStart(~tid)
+    [ Create_TLS_Channel(C, cid, S)
+    , Fr(~sid)
+    , !Ltk($S, ltkS)
     ]
-  --[ Start(~tid, S, C, 'server')
-    , S0(~tid)
+  --[ PreStart(~sid, S, C, 'server')
     ]->
-    [ State(~tid, 'S0', S, C, 'server')
+    [ Create_TLS_Channel2(C, cid, S, ~sid, pk(ltkS))
+    , State(~sid, 'S0', S, C, 'server', 'none')
+    ]
+
+rule S_1_uni:
+  let
+    C=$C
+    S=$S
+  in
+    [ Create_TLS_Channel3(C, cid, 'none', S,  ~sid, pk(ltkS))
+    , State(~sid, 'S0', S, C, 'server', 'none')
+    ]
+  --[ Start(~sid, S, C, 'server')
+    , S1(~sid)
+    ]->
+    [ State(~sid, 'S1', S, C, 'server', 'none')
+    , Create_TLS_Channel4(C, cid, 'none', S, ~sid, pk(ltkS))
+    ]
+
+rule S_1_bi:
+  let
+    C=$C
+    S=$S
+  in
+    [ Create_TLS_Channel3(C, cid, pk(ltkC),  S, ~sid, pk(ltkS))
+    , State(~sid, 'S0', S, C, 'server', 'none')
+    , !Pk(C, pk(ltkC))
+    ]
+  --[ Start(~sid, S, C, 'server')
+    , S1(~sid)
+    ]->
+    [ State(~sid, 'S1', S, C, 'server', 'auth')
+    , Create_TLS_Channel4(C, cid, pk(ltkC), S, ~sid, pk(ltkS))
     ]
 
 rule S_Request:
@@ -18,16 +50,16 @@ rule S_Request:
     S=$S
     certificate_request_context=~certificate_request_context
   in
-    [ State(~tid, 'S0', S, C, 'server')
+    [ State(~sid, 'S1', S, C, 'server', auth_status)
     , Fr(~certificate_request_context)
     ]
-  --[ S_Req(~tid, ~certificate_request_context)
-    , Instance(~tid, S, C, 'server')
-    , Requested(~tid, S, 'server',  CertificateRequest)
+  --[ S_Req(~sid, ~certificate_request_context)
+    , Instance(~sid, S, C, 'server')
+    , Requested(~sid, S, 'server',  CertificateRequest)
     ]->
-    [ State(~tid, 'S0', S, C, 'server')
-    , TLS_Send(~tid, C, S, CertificateRequest)
-    , PendingReq(~tid, 'server', CertificateRequest)
+    [ State(~sid, 'S1', S, C, 'server', auth_status)
+    , TLS_Send(~sid, S, C, CertificateRequest)
+    , PendingReq(~sid, 'server', CertificateRequest)
     ]
 
 rule S_RecvReq:
@@ -35,16 +67,16 @@ rule S_RecvReq:
     C=$C
     S=$S
   in
-    [ State(~tid, 'S0', S, C, 'server')
-    , TLS_Recv(~tid, C, S, CertificateRequest)
-    , !Exporters(~ms, 'server', ~tid, hccc, hccs, fmc, fms)
+    [ State(~sid, 'S1', S, C, 'server', auth_status)
+    , TLS_Recv(~sid, C, S, CertificateRequest)
+    , !Exporters(ms, 'server', ~sid, hccc, hccs, fmc, fms)
     ]
-  --[ S_RecvReq(~tid)
-    , RecvReq(S, ~ms, 'server', CertificateRequest)
-    , Instance(~tid, S, C, 'server')
+  --[ S_RecvReq(~sid)
+    , RecvReq(S, ms, 'server', CertificateRequest)
+    , Instance(~sid, S, C, 'server')
     ]->
-    [ State(~tid, 'S0', S, C, 'server')
-    , PendingReq(~tid, 'server', CertificateRequest)
+    [ State(~sid, 'S1', S, C, 'server', auth_status)
+    , PendingReq(~sid, 'server', CertificateRequest)
     ]
 
 rule S_Send:
@@ -52,67 +84,67 @@ rule S_Send:
     C=$C
     S=$S
     certificate_request_context=~certificate_request_context
-    certificate=pk(~ltkA)
-    signature=compute_signature(~ltkA, h(hccs, CertificateRequest, certificate))
+    certificate=pk(ltkA)
+    signature=compute_signature(ltkA, h(hccs, CertificateRequest, certificate))
     verify_data = hmac(fms, <hccs, CertificateRequest, Certificate, CertificateVerify>)
   in
-    [ State(~tid, 'S0', S, C, 'server')
-    , PendingReq(~tid, 'server', CertificateRequest)
-    , !Exporters(~ms, 'server', ~tid, hccc, hccs, fmc, fms)
-    , !Ltk($A, ~ltkA)
-    , DelegateLtk($S, ~ltkA)  
+    [ State(~sid, 'S1', S, C, 'server', auth_status)
+    , PendingReq(~sid, 'server', CertificateRequest)
+    , !Exporters(ms, 'server', ~sid, hccc, hccs, fmc, fms)
+    , !Ltk($A, ltkA)
+    , DelegateLtk($S, ltkA)  
     ]
-  --[ S_Send(~tid)
-    , Owns(S, ~ms, 'server', <$A, ~ltkA>)
-    , Instance(~tid, S, C, 'server')
-    , Fulfil(~tid, S, 'server', CertificateRequest, <$A, ~ltkA>)
+  --[ S_Send(~sid)
+    , Owns(S, ms, 'server', <$A, ltkA>)
+    , Instance(~sid, S, C, 'server')
+    , Fulfil(~sid, S, 'server', CertificateRequest, <$A, ltkA>)
     ]->
-    [ State(~tid, 'S0', S, C, 'server')
-    , TLS_Send(~tid, C, S, <Certificate, CertificateVerify, Finished>)
+    [ State(~sid, 'S1', S, C, 'server', auth_status)
+    , TLS_Send(~sid, S, C, <Certificate, CertificateVerify, Finished>)
     ]
 
 rule S_Recv:
   let 
     C=$C
     S=$S
-    certificate=pk(~ltkA)
+    certificate=pk(ltkA)
     sig_msg=signature_input(h(hccc, CertificateRequest, certificate))
     exp_verify_data = hmac(fmc, <hccc, CertificateRequest, Certificate, CertificateVerify>)
   in
-    [ State(~tid, 'S0', S, C, 'server')
-    , TLS_Recv(~tid, C, S, <Certificate, CertificateVerify, Finished>)
-    , PendingReq(~tid, 'server', CertificateRequest)
-    , !Exporters(~ms, 'server', ~tid, hccc, hccs, fmc, fms)
-    , !Pk($A, pk(~ltkA))
+    [ State(~sid, 'S1', S, C, 'server', auth_status)
+    , TLS_Recv(~sid, C, S, <Certificate, CertificateVerify, Finished>)
+    , PendingReq(~sid, 'server', CertificateRequest)
+    , !Exporters(ms, 'server', ~sid, hccc, hccs, fmc, fms)
+    , !Pk($A, pk(ltkA))
     ]
-  --[ S_Recv(~tid)
-    , Eq(verify(signature, sig_msg, pk(~ltkA)), true)
+  --[ S_Recv(~sid)
+    , Eq(verify(signature, sig_msg, pk(ltkA)), true)
     , Eq(verify_data,exp_verify_data)
-    , Recv(S, ~ms, 'server', <$A, pk(~ltkA)>)
-    , Fulfilled(~tid, S, 'server', CertificateRequest, <$A, pk(~ltkA)>)
-    , Instance(~tid, S, C, 'server')
+    , Recv(S, ms, 'server', <$A, pk(ltkA)>)
+    , Fulfilled(~sid, S, 'server', CertificateRequest, <$A, pk(ltkA)>)
+    , Instance(~sid, S, C, 'server')
     ]->
-    [ State(~tid, 'S0', S, C, 'server')
-    , !AcceptOwnership(~tid, C, S, pk(~ltkA))
+    [ State(~sid, 'S1', S, C, 'server', auth_status)
+    , !AcceptOwnership(~sid, C, S, pk(ltkA))
     ]
 
 rule S_Send_Spontaneous:
   let
     C=$C
     S=$S
-    certificate=pk(~ltkA)
-    signature=compute_signature(~ltkA, h(hccs, certificate))
+    certificate=pk(ltkA)
+    signature=compute_signature(ltkA, h(hccs, certificate))
     verify_data = hmac(fms, <hccs, Certificate_Spontaneous, CertificateVerify>)
   in
-    [ State(~tid, 'S0', S, C, 'server')
-    , !Exporters(~ms, 'server', ~tid, hccc, hccs, fmc, fms)
-    , !Ltk($A, ~ltkA)
-    , DelegateLtk($S, ~ltkA)  
+    [ State(~sid, 'S1', S, C, 'server', auth_status)
+    , !Exporters(ms, 'server', ~sid, hccc, hccs, fmc, fms)
+    , !Ltk($A, ltkA)
+    , DelegateLtk($S, ltkA)  
     ]
-  --[ S_Send(~tid)
-    , Owns(S, ~ms, 'server', <$A, ~ltkA>)
-    , Instance(~tid, S, C, 'server')
+  --[ S_Send(~sid)
+    , Owns(S, ms, 'server', <$A, ltkA>)
+    , Instance(~sid, S, C, 'server')
     ]->
-    [ State(~tid, 'S0', S, C, 'server')
-    , TLS_Send(~tid, C, S, <Certificate_Spontaneous, CertificateVerify, Finished>)
+    [ State(~sid, 'S1', S, C, 'server', auth_status)
+    , TLS_Send(~sid, S, C, <Certificate_Spontaneous, CertificateVerify, Finished>)
     ]

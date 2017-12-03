@@ -15,17 +15,39 @@ lemma one_start_per_tid [reuse]:
   "All tid actor actor2 peer peer2 role role2 #i #j. Start(tid, actor, peer, role)@i & Start(tid, actor2, peer2, role2)@j ==>#i=#j"
 !>)dnl
 dnl
-define(<!lemma_uniq_tid!>,<!dnl
+define(<!lemma_uniq_tid!>, <!dnl
 lemma uniq_Start:
   "All tid actor1 actor2 peer1 peer2 role1 role2 #i #j. Start(tid, actor1, peer1, role1)@i & Start(tid, actor2, peer2, role2)@j ==>  #i=#j & actor1=actor2 & peer1=peer2 & role1=role2"
 !>)dnl
 dnl
+define(<!lemma_start_self!>, <!
+lemma Start_Self[reuse]:
+  "All tid actor role #i. Start(tid, actor, actor, role)@i ==> F"
+!>)dnl
+dnl
+define(<!lemma_self_reference!>, <!dnl
+lemma Self_Reference[reuse]:
+  "All tid actor role #i. Instance(tid, actor, actor, role)@i ==> F"
+!>)dnl
+define(<!lemma_C_send_RecvReq!>, <!dnl
+lemma C_Send_RecvReq[reuse, use_induction]:
+  "All tid #i. C_Send(tid)@i ==> Ex #j. C_RecvReq(tid)@j & #j < #i"
+!>)dnl
+define(<!lemma_start_first!>, <!dnl
+lemma StartFirst[reuse, use_induction]:
+  "All tid actor peer role #i #j. Start(tid, actor, peer, role)@i & Instance(tid, actor, peer, role)@j ==> #i < #j"
+!>)dnl
 define(<!lemma_exists_state!>,<!dnl
 lemma exists_$1:
 exists-trace
   "Ex tid #j. $1(tid)@j"
 !>)dnl   
 dnl
+define(<!lemma_exists_CReq!>, <!dnl
+lemma exists_CReq:
+exists-trace
+  "Ex tid #j ctxt. C_Req(tid, ctxt)@j"
+!>)dnl
 define(<!lemma_constant_peer!>, <!dnl
 lemma constant_peer:
   "All tid actor actor2 peer peer2 role role2 #i #j. Instance(tid, actor, peer, role)@i & Start(tid, actor2, peer2, role2)@j ==> actor=actor2 & peer = peer2 & role=role2"
