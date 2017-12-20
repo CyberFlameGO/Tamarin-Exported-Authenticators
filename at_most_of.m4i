@@ -1,3 +1,30 @@
+dnl at_most_of macro
+dnl
+dnl Cas Cremers
+dnl December 2017
+dnl
+dnl Generates Tamarin restrictions that ensure that certain actions only
+dnl occur at most N times, for N >= 0. Requires as arguments N, the
+dnl action fact name, and the arity of the action fact. 
+dnl
+dnl   at_most_of(MaxCount, ActionFactName, ActionFactArity)
+dnl
+dnl Example:
+dnl
+dnl   at_most_of(2,testFact,3)
+dnl
+dnl Target: Tamarin source files that will be pre-processed by m4. Assumes that m4
+dnl quotes are redefined in the following way:
+dnl
+dnl   changequote(<!,!>)
+dnl   changecom(<!/*!>, <!*/!>)
+dnl
+dnl TODO: 
+dnl * Document better
+dnl
+dnl
+dnl ------------------------------------------------------------------
+dnl
 dnl Generic sequence
 dnl m4_sequence(start,end,prefix,postfix,separator)
 dnl $1: start
@@ -33,7 +60,7 @@ dnl generate ($1 = $2) pair
 define(<!m4_AMO_ineqpair!>, <!(#i$1 = #i$2)!>)
 dnl
 dnl generate ($1 = $1+1 ... $2) list of things with or separators
-dnl $1 : rhs (current index, typically start at incr($))
+dnl $1 : rhs (current index, typically start at min+1 = incr($2))
 dnl $2 : lhs (min) 
 dnl $3 : rhs (max)
 dnl $4 : empty means first
@@ -41,7 +68,7 @@ define(<!m4_AMO_ineqline!>, <!ifelse(eval($1 <= $3),
 1, ifelse($4,1,<! | !>)m4_AMO_ineqpair($2,$1)<!m4_AMO_ineqline(incr($1),<!$2!>,<!$3!>,<!1!>)!>,<!!>)!>)
 dnl
 dnl all combos
-dnl $1 : index
+dnl $1 : min
 dnl $2 : max
 define(<!m4_AMO_ineqform!>, <!ifelse(eval($1 < $2),
 1,ifelse($3,1,<!
@@ -54,5 +81,5 @@ restriction At_most_$1_of_$2:
 "All m4_sequence(1,<!incr($1)!>,#i,<! !>) 
       m4_AMO_block(1,<!incr($1)!>,<!$3!>,,<! !>).
       m4_AMO_block(1,<!incr($1)!>,<!$3!>,<!$2(!>,<!,!>,<!)@#i!>,<! &!>)dnl
-==> ( m4_AMO_ineqform(1,<!incr($1)!>,0,<!         !>) )"dnl
+==> ifelse($1,0,<!F!>,<!( m4_AMO_ineqform(1,<!incr($1)!>,0,<!         !>) )!>)"dnl
 !>)dnl

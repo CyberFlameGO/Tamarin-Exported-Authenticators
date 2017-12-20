@@ -49,7 +49,7 @@ exists-trace
   "Ex tid #j ctxt. C_Req(tid, ctxt)@j"
 !>)dnl
 define(<!lemma_constant_peer!>, <!dnl
-lemma constant_peer:
+lemma constant_peer[reuse]:
   "All tid actor actor2 peer peer2 role role2 #i #j. Instance(tid, actor, peer, role)@i & Start(tid, actor2, peer2, role2)@j ==> actor=actor2 & peer = peer2 & role=role2"
 !>)dnl
 dnl
@@ -71,12 +71,12 @@ lemma reachable_session_keys:
 !>)dnl
 dnl
 define(<!lemma_cert_ownership!>,<!dnl
-lemma cert_ownership:
+lemma cert_ownership[reuse]:
   "All actor ms ltkD del role #k. Recv(actor, ms, role, <del, pk(ltkD)>)@k ==> (Ex peer role2 #i. Owns(peer, ms, role2, <del, ltkD>)@i & (#i<#k) & not(role=role2)) | (Ex #j. RevLtk(del)@j & (#j<#k))"
 !>)dnl
 dnl
 define(<!lemma_consistent_nonce!>,<!dnl
-lemma consistent_nonce:
+lemma consistent_nonce[reuse]:
   "All tid actor peer role actor2 peer2 role2 #i #j. Instance(tid, actor, peer, role)@i & Instance(tid, actor2, peer2, role2)@j ==> actor=actor2 & peer=peer2 & role=role2"
 !>)dnl
 dnl
