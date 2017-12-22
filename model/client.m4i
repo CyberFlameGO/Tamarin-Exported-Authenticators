@@ -129,7 +129,6 @@ rule C_Recv:
     , Instance(~cid, C, S, 'client')
     ]->
     [ State(~cid, 'C1', C, S, 'client', auth_status)
-    , !AcceptOwnership(~cid, C, S, pk(ltkA))
     ]
 
 rule C_Recv_Spontaneous:
@@ -152,5 +151,4 @@ rule C_Recv_Spontaneous:
     , Instance(~cid, C, S, 'client')
     ]->
     [ State(~cid, 'C1', C, S, 'client', auth_status)
-    , !AcceptOwnership(~cid, C, S, pk(ltkA))
     ]

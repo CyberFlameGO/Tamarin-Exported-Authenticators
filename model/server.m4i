@@ -25,7 +25,7 @@ rule S_1_uni:
     , S1(~sid)
     ]->
     [ State(~sid, 'S1', S, C, 'server', 'none')
-    , Create_TLS_Channel4(C, cid, 'none', S, ~sid, pk(ltkS))
+    , Create_TLS_Channel4(C, cid, 'none', S, ~sid, pk(ltkS), 'uni')
     ]
 
 rule S_1_bi:
@@ -41,7 +41,7 @@ rule S_1_bi:
     , S1(~sid)
     ]->
     [ State(~sid, 'S1', S, C, 'server', 'auth')
-    , Create_TLS_Channel4(C, cid, pk(ltkC), S, ~sid, pk(ltkS))
+    , Create_TLS_Channel4(C, cid, pk(ltkC), S, ~sid, pk(ltkS), 'bi')
     ]
 
 rule S_Request:
@@ -127,7 +127,6 @@ rule S_Recv:
     , Instance(~sid, S, C, 'server')
     ]->
     [ State(~sid, 'S1', S, C, 'server', auth_status)
-    , !AcceptOwnership(~sid, C, S, pk(ltkA))
     ]
 
 rule S_Send_Spontaneous:

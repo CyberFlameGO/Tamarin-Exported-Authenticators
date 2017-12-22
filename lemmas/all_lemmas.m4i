@@ -48,6 +48,11 @@ lemma exists_CReq:
 exists-trace
   "Ex tid #j ctxt. C_Req(tid, ctxt)@j"
 !>)dnl
+define(<!lemma_good_start!>, <!dnl
+lemma good_start[sources]:
+  "All tid #j. C_RecvReq(tid)@j ==> not(Ex actor peer role #i. StartI(tid, actor, peer, role)@i)"
+!>)dnl
+dnl
 define(<!lemma_constant_peer!>, <!dnl
 lemma constant_peer[reuse]:
   "All tid actor actor2 peer peer2 role role2 #i #j. Instance(tid, actor, peer, role)@i & Start(tid, actor2, peer2, role2)@j ==> actor=actor2 & peer = peer2 & role=role2"

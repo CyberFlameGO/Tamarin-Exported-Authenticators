@@ -1,26 +1,13 @@
-rule Create_TLS_channel_bi:
+rule Create_TLS_channel:
     [ Fr(ms)
     , Fr(TLS_transcript) 
-    , Create_TLS_Channel4($C, nc,  pk(ltkC), $S, ns,  pk(ltkS))
+    , Create_TLS_Channel4($C, nc,  cert, $S, ns,  pk(ltkS), status)
     ]
   --[
       SessionKey(ms, TLS_transcript)
+    , Check_is_none(cert, status)
     ]->
-    [ !TLS_Channel(ms, TLS_transcript, 'bi', $C, nc, $S, ns)
-    , !Exporters(ms, 'server',  ns, Handshake_Context(client), Handshake_Context(server), Finished_MAC(client), Finished_MAC(server))
-    , !Exporters(ms, 'client', nc, Handshake_Context(client), Handshake_Context(server), Finished_MAC(client), Finished_MAC(server))
-    ]
-
-rule Create_TLS_channel_uni:
-    [ Fr(ms)
-    , Fr(TLS_transcript) 
-    , Fr(cid)
-    , Create_TLS_Channel4($C, nc, 'none', $S, ns, pk(ltkS))
-    ]
-  --[
-      SessionKey(ms, TLS_transcript)
-    ]->
-    [ !TLS_Channel(ms, TLS_transcript, 'uni', $C, nc, $S, ns)
+    [ !TLS_Channel(ms, TLS_transcript, status, $C, nc, $S, ns)
     , !Exporters(ms, 'server',  ns, Handshake_Context(client), Handshake_Context(server), Finished_MAC(client), Finished_MAC(server))
     , !Exporters(ms, 'client', nc, Handshake_Context(client), Handshake_Context(server), Finished_MAC(client), Finished_MAC(server))
     ]

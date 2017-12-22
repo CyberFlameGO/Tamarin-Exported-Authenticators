@@ -25,14 +25,14 @@ rule Create_Adv_TLS_channel1:
     C=$C
     I=$I
   in
-    [ Create_TLS_Channel(C, cid, $I) 
+    [ Create_TLS_Channel(C, cid, I) 
     , Fr(~iid)
     , !Ltk($I, ltkI)
     ]
   --[ Adv_TLS($I, ~iid) 
     ]->
     [ Create_TLS_Channel2(C, cid, I, ~iid, pk(ltkI))
-    , State(~iid, 'I0', C, I, 'server', 'none')
+    , State(~iid, 'I0', I, C, 'server', 'none')
     , Out(<cid, ltkI>)
     ]
 
@@ -85,7 +85,7 @@ rule Adv_2_uni:
     , I1(~iid)
     ]->
     [ State(~iid, 'I1', I, C, 'server', 'none')
-    , Create_TLS_Channel4(C, cid, 'none', I, ~iid, pk(ltkI))
+    , Create_TLS_Channel4(C, cid, 'none', I, ~iid, pk(ltkI), 'uni')
     ]
 
 rule Adv_2_bi:
@@ -101,7 +101,7 @@ rule Adv_2_bi:
     , I1(~iid)
     ]->
     [ State(~iid, 'I1', I, C, 'server', 'auth')
-    , Create_TLS_Channel4(C, cid, pk(ltkC), I, ~iid, pk(ltkI))
+    , Create_TLS_Channel4(C, cid, pk(ltkC), I, ~iid, pk(ltkI), 'bi')
     ]
 
 rule Adv_Send_TLS_owner:

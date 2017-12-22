@@ -26,3 +26,7 @@ restriction Neq_check_succeed: "All x y #i. Neq(x,y) @ i ==> not (x = y)"
 
 /* Enforce (x, y) = (a,b) or (b,a) */
 restriction pair_or_swapped: "All x y a b #i. Check_pair_or_swapped(x, y, a, b)@i ==> ((x = a & y = b) | (x = b & y = a))" 
+
+
+/* Compress status rules */
+restriction is_none: "All cert status #i. Check_is_none(cert, status)@i ==> ((cert = 'none' & status = 'uni') | (not(cert = 'none') & status = 'bi'))"
