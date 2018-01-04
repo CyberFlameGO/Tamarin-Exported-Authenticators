@@ -17,13 +17,17 @@ include(adversary.m4i)dnl
 include(all_lemmas.m4i)dnl
 include(at_most_of.m4i)dnl
 
+lemma_pre_tid_invariant
+
+lemma_tid_invariant
+
+lemma_one_prestart_per_tid
+
 lemma_one_start_per_tid
 
 lemma_exists_Start
 
 lemma_constant_peer
-
-lemma_tid_invariant
 
 lemma_start_self
 

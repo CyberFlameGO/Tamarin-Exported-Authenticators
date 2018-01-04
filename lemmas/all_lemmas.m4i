@@ -4,15 +4,25 @@ exists-trace
   "Ex tid actor peer role #j. Start(tid, actor, peer, role)@j"
 !>)dnl
 dnl
-define(<!lemma_tid_invariant!>, <!
+define(<!lemma_pre_tid_invariant!>, <!dnl
+lemma pre_tid_invariant[reuse]:
+  "All tid actor peer role #i. Start(tid, actor, peer, role)@i==>
+    (Ex #j. PreStart(tid, actor, peer, role)@j & (#j < #i))"
+!>)dnl
+dnl
+define(<!lemma_tid_invariant!>, <!dnl
 lemma tid_invariant [use_induction, reuse]:
   "All tid actor peer role #i. Instance(tid, actor, peer, role)@i==>
     (Ex #j. Start(tid, actor, peer, role)@j & (#j < #i))"
 !>)dnl
 dnl
-define(<!lemma_one_start_per_tid!>, <!
+define(<!lemma_one_prestart_per_tid!>, <!dnl
+lemma one_prestart_per_tid [reuse]:
+  "All tid actor actor2 peer peer2 role role2 #i #j. PreStart(tid, actor, peer, role)@i & PreStart(tid, actor2, peer2, role2)@j ==> #i = #j"
+!>)dnl
+define(<!lemma_one_start_per_tid!>, <!dnl
 lemma one_start_per_tid [reuse]:
-  "All tid actor actor2 peer peer2 role role2 #i #j. Start(tid, actor, peer, role)@i & Start(tid, actor2, peer2, role2)@j ==>#i=#j"
+  "All tid actor actor2 peer peer2 role role2 #i #j. Start(tid, actor, peer, role)@i & Start(tid, actor2, peer2, role2)@j ==>#i = #j"
 !>)dnl
 dnl
 define(<!lemma_uniq_tid!>, <!dnl
@@ -20,7 +30,7 @@ lemma uniq_Start:
   "All tid actor1 actor2 peer1 peer2 role1 role2 #i #j. Start(tid, actor1, peer1, role1)@i & Start(tid, actor2, peer2, role2)@j ==>  #i=#j & actor1=actor2 & peer1=peer2 & role1=role2"
 !>)dnl
 dnl
-define(<!lemma_start_self!>, <!
+define(<!lemma_start_self!>, <!dnl
 lemma Start_Self[reuse]:
   "All tid actor role #i. Start(tid, actor, actor, role)@i ==> F"
 !>)dnl

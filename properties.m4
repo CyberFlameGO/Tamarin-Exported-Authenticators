@@ -9,7 +9,11 @@ include(all_lemmas.m4i)
 
 lemma_uniq_tid
 
+lemma_pre_tid_invariant
+
 lemma_tid_invariant
+
+lemma_one_prestart_per_tid
 
 lemma_one_start_per_tid
 
