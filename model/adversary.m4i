@@ -33,7 +33,7 @@ rule Create_Adv_TLS_channel1:
     ]->
     [ Create_TLS_Channel2(C, cid, I, ~iid, pk(ltkI))
     , State(~iid, 'I0', I, C, 'server', 'none')
-    , Out(<cid, ltkI>)
+    , Out(<cid, ~iid, ltkI>)
     ]
 
 
