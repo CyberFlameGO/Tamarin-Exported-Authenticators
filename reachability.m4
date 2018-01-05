@@ -4,6 +4,7 @@ changecom(<!/*!>, <!*/!>)
 define(<!State!>,<!F_State($1, shift($@))!>)
 theory ExportedAuthenticators_Reachability
 begin
+include(tamarin-version.m4i)dnl
 include(header.m4i)dnl
 
 include(crypto.m4i)dnl

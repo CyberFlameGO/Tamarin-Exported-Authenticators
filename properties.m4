@@ -3,6 +3,7 @@ changecom(<!/*!>, <!*/!>)
 
 theory ExportedAuthenticators_lemmas
 begin
+include(tamarin-version.m4i)
 include(header.m4i)
 include(model.m4i)
 include(all_lemmas.m4i)
