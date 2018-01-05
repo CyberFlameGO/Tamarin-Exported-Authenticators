@@ -1,7 +1,7 @@
 rule Reveal_ltk:
-  [ !Ltk(A, ltk) ]
---[ RevLtk(A) ]->
-  [ Out(ltk) ]
+    [ !Ltk(A, ltk) ]
+  --[ RevLtk(A) ]->
+    [ Out(ltk) ]
 
 rule I_0:
   let
@@ -105,23 +105,30 @@ rule Adv_2_bi:
     ]
 
 rule Adv_Send_TLS_owner:
-  [ In(<iid, m>)
-  , !TLS_Channel(ms, TLS_transcript, auth_status, $I, iid, $S, sid)
-  ]
-  --[ A_Send(iid) ]->
-  [ TLS_Send(iid, $I, $S, m) ]
+    [ In(<iid, m>)
+    , !TLS_Channel(ms, TLS_transcript, auth_status, $I, iid, $S, sid)
+    ]
+  --[ A_Send(iid)
+    , TLS_Sent(ms)
+    ]->
+    [ TLS_Send(iid, $I, $S, m) ]
 
 rule Adv_Send_TLS_target:
-  [ In(<iid, m>)
-  , !TLS_Channel(ms, TLS_transcript, auth_status, $C, cid, $I, iid)
-  ]
-  --[ A_Send(iid) ]->
-  [ TLS_Send(iid, $I, $C, m) ]
+    [ In(<iid, m>)
+    , !TLS_Channel(ms, TLS_transcript, auth_status, $C, cid, $I, iid)
+    ]
+  --[ A_Send(iid) 
+    , TLS_Sent(ms)
+    ]->
+    [ TLS_Send(iid, $I, $C, m) ]
 
 rule Adv_Recv_TLS:
-  [ TLS_Recv(iid, from_host, to_host, msg)
-  , In(<iid>)
-  ]
-  --[ A_Recv(iid) ]->
-  [ Out(<from_host, to_host, msg>) ] 
+    [ TLS_Recv(iid, from_host, to_host, msg)
+    , In(<iid>)
+    , !TLS_Channel(ms, TLS_transcript, auth_status, $I, iid, $S, sid)
+    ]
+  --[ A_Recv(iid) 
+    , TLS_Recvd(ms)
+    ]->
+    [ Out(<from_host, to_host, msg>) ] 
 

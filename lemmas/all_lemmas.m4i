@@ -58,6 +58,11 @@ lemma exists_CReq:
 exists-trace
   "Ex tid #j ctxt. C_Req(tid, ctxt)@j"
 !>)dnl
+define(<!lemma_send_recv!>,<!dnl
+lemma send_recv[reuse]:
+	"All ms #j. TLS_Recvd(ms)@j ==> Ex #i. TLS_Sent(ms)@i & #i < #j"
+!>)dnl
+dnl
 define(<!lemma_good_start!>, <!dnl
 lemma good_start[SOURCES]:
   "All tid #j. C_RecvReq(tid)@j ==> not(Ex actor peer role #i. StartI(tid, actor, peer, role)@i)"

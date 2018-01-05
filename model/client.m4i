@@ -53,12 +53,14 @@ rule C_Request:
     certificate_request_context=~certificate_request_context
   in
     [ State(~cid, 'C1', C, S, 'client', auth_status)
+    , !TLS_Channel(ms, TLS_transcript, auth_status, $C, ~cid, $S, sid)
     , Fr(~certificate_request_context)
     , Fr(~request_id)
     ]
   --[ C_Req(~cid, ~certificate_request_context)
     , Instance(~cid, C, S, 'client')
     , Requested(~cid, C, 'client',  CertificateRequest)
+    , TLS_Sent(ms)
     ]->
     [ State(~cid, 'C1', C, S, 'client', auth_status)
     , TLS_Send(~cid, C, S, CertificateRequest)
@@ -78,6 +80,7 @@ rule C_RecvReq:
   --[ C_RecvReq(~cid)
     , RecvReq(C, ms, 'client', CertificateRequest)
     , Instance(~cid, C, S, 'client')
+    , TLS_Recvd(ms)
     ]->
     [ State(~cid, 'C1', C, S, 'client', auth_status)
     , PendingReqR(~request_id, ~cid, 'client', CertificateRequest)
@@ -102,6 +105,7 @@ rule C_Send:
     , Owns(C, ms, 'client', <$A, ltkA>)
     , Instance(~cid, C, S, 'client')
     , Fulfil(~cid, C, 'client', CertificateRequest, <$A, pk(ltkA)>)
+    , TLS_Sent(ms)
     ]->
     [ State(~cid, 'C1', C, S, 'client', auth_status)
     , TLS_Send(~cid, C, S, <Certificate, CertificateVerify, Finished>) 
@@ -127,6 +131,7 @@ rule C_Recv:
     , Recv(C, ms, 'client',  <$A, pk(ltkA)>)
     , Fulfilled(~cid, C, 'client', CertificateRequest, <$A, pk(ltkA)>)
     , Instance(~cid, C, S, 'client')
+    , TLS_Recvd(ms)
     ]->
     [ State(~cid, 'C1', C, S, 'client', auth_status)
     ]
@@ -149,6 +154,7 @@ rule C_Recv_Spontaneous:
     , Eq(verify_data, exp_verify_data)
     , Recv(C, ms, 'client',  <$A, pk(ltkA)>)
     , Instance(~cid, C, S, 'client')
+    , TLS_Recvd(ms)
     ]->
     [ State(~cid, 'C1', C, S, 'client', auth_status)
     ]
