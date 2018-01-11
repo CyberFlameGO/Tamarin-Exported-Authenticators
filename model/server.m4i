@@ -57,7 +57,7 @@ rule S_Request:
     ]
   --[ S_Req(~sid, ~certificate_request_context)
     , Instance(~sid, S, C, 'server')
-    , Requested(~sid, S, 'server',  CertificateRequest)
+    , Requested(~sid, S, 'server', certificate_request_context)
     , TLS_Sent(ms)
     ]->
     [ State(~sid, 'S1', S, C, 'server', auth_status)
@@ -76,7 +76,7 @@ rule S_RecvReq:
     , Fr(~request_id)
     ]
   --[ S_RecvReq(~sid)
-    , RecvReq(S, ms, 'server', CertificateRequest)
+    , RecvReq(S, ms, 'server', certificate_request_context)
     , Instance(~sid, S, C, 'server')
     , TLS_Recvd(ms)
     ]->
@@ -102,7 +102,7 @@ rule S_Send:
   --[ S_Send(~sid)
     , Owns(S, ms, 'server', <$A, ltkA>)
     , Instance(~sid, S, C, 'server')
-    , Fulfil(~sid, S, 'server', CertificateRequest, <$A, ltkA>)
+    , Fulfil(~sid, S, 'server', certificate_request_context, <$A, ltkA>)
     , TLS_Sent(ms)
     ]->
     [ State(~sid, 'S1', S, C, 'server', auth_status)
@@ -127,7 +127,7 @@ rule S_Recv:
     , Eq(verify(signature, sig_msg, pk(ltkA)), true)
     , Eq(verify_data,exp_verify_data)
     , Recv(S, ms, 'server', <$A, pk(ltkA)>)
-    , Fulfilled(~sid, S, 'server', CertificateRequest, <$A, pk(ltkA)>)
+    , Fulfilled(~sid, S, 'server', certificate_request_context, <$A, pk(ltkA)>)
     , Instance(~sid, S, C, 'server')
     , TLS_Recvd(ms)
     ]->

@@ -73,6 +73,16 @@ lemma constant_peer[reuse]:
   "All tid actor actor2 peer peer2 role role2 #i #j. Instance(tid, actor, peer, role)@i & Start(tid, actor2, peer2, role2)@j ==> actor=actor2 & peer = peer2 & role=role2"
 !>)dnl
 dnl
+define(<!lemma_req_before_fulfil!>,<!dnl
+lemma req_before_fulfil[reuse]:
+  "All tid actor role certificate_request_context cert #j. Fulfil(tid, actor, role, certificate_request_context, cert)@j==> (Ex tid2 actor2 role2 #i. Requested(tid2, actor2, role2, certificate_request_context)@i & #i < #j) | (Ex #i. KU(certificate_request_context)@i & #i < #j)"
+!>)dnl
+dnl
+define(<!lemma_ku_crctxt!>,<!dnl
+lemma ku_crctxt[reuse]:
+  "All tid actor role certificate_request_context cert #i #j. Fulfil(tid, actor, role, certificate_request_context, cert)@j & KU(certificate_request_context)@i ==> #i < #j"
+!>)dnl
+dnl
 define(<!lemma_can_loop_state!>,<!dnl
 lemma can_loop_$1:
 exists-trace

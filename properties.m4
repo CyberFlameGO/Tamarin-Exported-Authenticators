@@ -22,6 +22,10 @@ lemma_send_recv
 
 lemma_good_start
 
+lemma_req_before_fulfil
+
+lemma_ku_crctxt
+
 lemma_constant_peer
 lemma_consistent_nonce
 lemma_reachable_session_keys
