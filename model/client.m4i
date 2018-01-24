@@ -90,7 +90,6 @@ rule C_Send:
   let
     C=$C
     S=$S
-    certificate_request_context=~certificate_request_context
     certificate=pk(ltkA)
     signature=compute_signature(ltkA, h(hccc, CertificateRequest, certificate))
     verify_data = hmac(fmc, <hccc, CertificateRequest, Certificate, CertificateVerify>)

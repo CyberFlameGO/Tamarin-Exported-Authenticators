@@ -35,6 +35,17 @@ lemma Start_Self[reuse]:
   "All tid actor role #i. Start(tid, actor, actor, role)@i ==> F"
 !>)dnl
 dnl
+define(<!lemma_ku_extract!>, <!dnl
+lemma ku_extract [reuse, use_induction]:
+  "All a b #i. KU(Extract(a, b))@i ==> Ex #j #k. KU(a)@j & KU(b)@k & #j < #i & #k < #i"
+!>)dnl
+dnl
+define(<!lemma_ku_expand!>, <!dnl
+lemma ku_expand [reuse, use_induction]:
+"All secret label len #i. KU(Expand(secret, label, len))@i ==>
+  (Ex #j. KU(secret)@j & #j < #i)"
+!>)dnl
+dnl
 define(<!lemma_self_reference!>, <!dnl
 lemma Self_Reference[reuse]:
   "All tid actor role #i. Instance(tid, actor, actor, role)@i ==> F"
@@ -65,7 +76,7 @@ lemma send_recv[reuse]:
 dnl
 define(<!lemma_good_start!>, <!dnl
 lemma good_start[SOURCES]:
-  "All tid #j. C_RecvReq(tid)@j ==> not(Ex actor peer role #i. StartI(tid, actor, peer, role)@i)"
+  "All tid actor peer role #j. Instance(tid, actor, peer, role)@j ==> not(Ex actor2 peer2 role2 #i. StartI(tid, actor2, peer2, role2)@i)"
 !>)dnl
 dnl
 define(<!lemma_constant_peer!>, <!dnl

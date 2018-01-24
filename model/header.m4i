@@ -13,9 +13,8 @@ section{* TLS Exported Authenticators*}
 
 // Hash declarations
 
-functions: Expand/3, Extract/2, hmac/1, mac/1, mask/2, unmask/2, Exporter/3
+functions: Expand/3, Extract/2, hmac/1, mac/1, Exporter/3
 
-equations: unmask(mask(x, y), y) = x, unmask(mask(x, y), x) = y
 
 
 /* AXIOMS */
@@ -23,9 +22,6 @@ equations: unmask(mask(x, y), y) = x, unmask(mask(x, y), x) = y
 /* Explicit equality checking */
 RESTRICTION Eq_check_succeed: "All x y #i. Eq(x,y) @ i ==> x = y"
 RESTRICTION Neq_check_succeed: "All x y #i. Neq(x,y) @ i ==> not (x = y)"
-
-/* Enforce (x, y) = (a,b) or (b,a) */
-RESTRICTION pair_or_swapped: "All x y a b #i. Check_pair_or_swapped(x, y, a, b)@i ==> ((x = a & y = b) | (x = b & y = a))" 
 
 
 /* Compress status rules */

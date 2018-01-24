@@ -18,6 +18,10 @@ lemma_one_prestart_per_tid
 
 lemma_one_start_per_tid
 
+lemma_ku_extract
+
+lemma_ku_expand
+
 lemma_send_recv
 
 lemma_good_start
