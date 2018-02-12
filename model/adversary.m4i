@@ -1,134 +1,50 @@
 rule Reveal_ltk:
     [ !Ltk(A, ltk) ]
-  --[ RevLtk(A) ]->
+  --[ RevLtk(ltk, A) ]->
     [ Out(ltk) ]
 
-rule I_0:
-  let
-    I=$I
-    S=$S
-  in
-    [ Fr(~iid)
-    ]
-  --[ Adv_PreStart(~iid, I, S, 'client')
-    , I0(~iid)
-    , Neq(I, S)
-    ]->
-    [ State(~iid, 'I0', I, S, 'client', 'none')
-    , Create_TLS_Channel(I, ~iid, S)
-    , Out(<~iid>)
-    ]
-
-
-rule Create_Adv_TLS_channel1:
-  let 
-    C=$C
-    I=$I
-  in
-    [ Create_TLS_Channel(C, cid, I) 
-    , Fr(~iid)
-    , !Ltk($I, ltkI)
-    ]
-  --[ Adv_TLS($I, ~iid) 
-    ]->
-    [ Create_TLS_Channel2(C, cid, I, ~iid, pk(ltkI))
-    , State(~iid, 'I0', I, C, 'server', 'none')
-    , Out(<cid, ~iid, ltkI>)
-    ]
-
-
-rule Adv_1_Uni:
-  let
-    I=$I
-    S=$S
-  in
-    [ Create_TLS_Channel2(I, ~iid, S, sid, pk(ltkS))
-    , State(~iid, 'I0', I, S, 'client', 'none')
-    , !Pk(S, pk(ltkS))
-    ]
-  --[ I1(~iid)
-    , StartI(~iid, I, S, 'client')
-    ]->
-    [ State(~iid, 'I1', I, S, 'client', 'auth')
-    , Create_TLS_Channel3(I, ~iid, 'none', S, sid, pk(ltkS))
-    , Out(<sid>)
-    ]
-
-rule Adv_1_Bi:
-  let
-    I=$I
-    S=$S
-  in
-    [ Create_TLS_Channel2(I, ~iid, S, sid, pk(ltkS))
-    , State(~iid, 'I0', I, S, 'client', 'none')
-    , !Pk(S, pk(ltkS))
-    , !Ltk(I, ltkI)
-    ]
-  --[ I1(~iid)
-    , StartI(~iid, I, S, 'client')
-    ]->
-    [ State(~iid, 'I1', I, S, 'client', 'auth')
-    , Create_TLS_Channel3(I, ~iid, pk(ltkI), S, sid, pk(ltkI))
-    , Out(<sid, ltkI>)
-    ]
-
-
-rule Adv_2_uni:
-  let
-    C=$C
-    I=$I
-  in
-    [ Create_TLS_Channel3(C, cid, 'none', I,  ~iid, pk(ltkI))
-    , State(~iid, 'I0', I, C, 'server', 'none')
-    ]
-  --[ StartI(~iid, I, C, 'server')
-    , I1(~iid)
-    ]->
-    [ State(~iid, 'I1', I, C, 'server', 'none')
-    , Create_TLS_Channel4(C, cid, 'none', I, ~iid, pk(ltkI), 'uni')
-    ]
-
-rule Adv_2_bi:
-  let
-    C=$C
-    I=$I
-  in
-    [ Create_TLS_Channel3(C, cid, pk(ltkC),  I, ~iid, pk(ltkI))
-    , State(~iid, 'I0', I, C, 'server', 'none')
-    , !Pk(C, pk(ltkC))
-    ]
-  --[ StartI(~iid, I, C, 'server')
-    , I1(~iid)
-    ]->
-    [ State(~iid, 'I1', I, C, 'server', 'auth')
-    , Create_TLS_Channel4(C, cid, pk(ltkC), I, ~iid, pk(ltkI), 'bi')
-    ]
+rule Reveal_ms:
+    [ !TLS_Channel(ms, TLS_transcript, status, C, nc, S, ns)]
+  --[ Revms(ms, C, S) ]->
+    [ Out(<ms, TLS_transcript, status, nc, ns>) ]
 
 rule Adv_Send_TLS_owner:
-    [ In(<iid, m>)
-    , !TLS_Channel(ms, TLS_transcript, auth_status, $I, iid, $S, sid)
+    [ In(<ms, m>)
+    , !TLS_Channel(ms, TLS_transcript, auth_status, $C, cid, $S, sid)
     ]
-  --[ A_Send(iid)
-    , TLS_Sent(ms)
+  --[ A_Send(cid)
+dnl    , TLS_Sent(ms)
     ]->
-    [ TLS_Send(iid, $I, $S, m) ]
+    [ TLS_Send('0', cid, $C, $S, m) ]
 
 rule Adv_Send_TLS_target:
-    [ In(<iid, m>)
-    , !TLS_Channel(ms, TLS_transcript, auth_status, $C, cid, $I, iid)
+    [ In(<ms, m>)
+    , !TLS_Channel(ms, TLS_transcript, auth_status, $C, cid, $S, sid)
     ]
-  --[ A_Send(iid) 
-    , TLS_Sent(ms)
+  --[ A_Send(sid) 
+dnl    , TLS_Sent(ms)
     ]->
-    [ TLS_Send(iid, $I, $C, m) ]
+    [ TLS_Send('0', sid, $S, $C, m) ]
 
-rule Adv_Recv_TLS:
-    [ TLS_Recv(iid, from_host, to_host, msg)
-    , In(<iid>)
-    , !TLS_Channel(ms, TLS_transcript, auth_status, $I, iid, $S, sid)
+rule Adv_Recv_TLS_owner:
+    [ TLS_Send(msg_id, nc, $C, $S, msg)
+    , !TLS_Channel(ms, TLS_transcript, state, $C, nc, $S, ns)
+    , In(<ms>)
     ]
-  --[ A_Recv(iid) 
-    , TLS_Recvd(ms)
+  --[ A_Recv(nc) 
+dnl    , TLS_Recvd(ms)
+    , Neq(msg_id, '0')
     ]->
-    [ Out(<from_host, to_host, msg>) ] 
+    [ Out(<$C, $S, msg>) ] 
+
+rule Adv_Recv_TLS_target:
+    [ TLS_Send(msg_id, ns, $S, $C, msg)
+    , !TLS_Channel(ms, TLS_transcript, state, $C, nc, $S, ns)
+    , In(<ms>)
+    ]
+  --[ A_Recv(ns) 
+dnl    , TLS_Recvd(ms)
+    , Neq(msg_id, '0')
+    ]->
+    [ Out(<$S, $C, msg>) ] 
 

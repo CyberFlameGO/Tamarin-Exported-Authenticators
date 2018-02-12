@@ -54,14 +54,15 @@ rule S_Request:
     , !TLS_Channel(ms, TLS_transcript, auth_status, $C, cid, $S, ~sid)
     , Fr(~certificate_request_context)
     , Fr(~request_id)
+    , Fr(~msg_id)
     ]
   --[ S_Req(~sid, ~certificate_request_context)
     , Instance(~sid, S, C, 'server')
     , Requested(~sid, S, 'server', certificate_request_context)
-    , TLS_Sent(ms)
+    , TLS_Sent(ms, <CertificateRequest>)
     ]->
     [ State(~sid, 'S1', S, C, 'server', auth_status)
-    , TLS_Send(~sid, S, C, CertificateRequest)
+    , TLS_Send(~msg_id, ~sid, S, C, CertificateRequest)
     , PendingReqI(~request_id, ~sid, 'server', CertificateRequest)
     ]
 
@@ -78,7 +79,7 @@ rule S_RecvReq:
   --[ S_RecvReq(~sid)
     , RecvReq(S, ms, 'server', certificate_request_context)
     , Instance(~sid, S, C, 'server')
-    , TLS_Recvd(ms)
+    , TLS_Recvd(ms, <CertificateRequest>)
     ]->
     [ State(~sid, 'S1', S, C, 'server', auth_status)
     , PendingReqR(~request_id, ~sid, 'server', CertificateRequest)
@@ -97,15 +98,17 @@ rule S_Send:
     , !Exporters(ms, 'server', ~sid, hccc, hccs, fmc, fms)
     , !Ltk($A, ltkA)
     , DelegateLtk($S, ltkA)  
+    , Fr(~msg_id)
     ]
   --[ S_Send(~sid)
     , Owns(S, ms, 'server', <$A, ltkA>)
     , Instance(~sid, S, C, 'server')
     , Fulfil(~sid, S, 'server', certificate_request_context, <$A, ltkA>)
-    , TLS_Sent(ms)
+    , TLS_Sent(ms, <Certificate, CertificateVerify, Finished>)
+    , Signed(signature)
     ]->
     [ State(~sid, 'S1', S, C, 'server', auth_status)
-    , TLS_Send(~sid, S, C, <Certificate, CertificateVerify, Finished>)
+    , TLS_Send(~msg_id, ~sid, S, C, <Certificate, CertificateVerify, Finished>)
     ]
 
 rule S_Recv:
@@ -125,10 +128,10 @@ rule S_Recv:
   --[ S_Recv(~sid)
     , Eq(verify(signature, sig_msg, pk(ltkA)), true)
     , Eq(verify_data,exp_verify_data)
-    , Recv(S, ms, 'server', <$A, pk(ltkA)>)
+    , Recv(S, C, ms, 'server', <$A, pk(ltkA)>)
     , Fulfilled(~sid, S, 'server', certificate_request_context, <$A, pk(ltkA)>)
     , Instance(~sid, S, C, 'server')
-    , TLS_Recvd(ms)
+    , TLS_Recvd(ms, <Certificate, CertificateVerify, Finished>)
     ]->
     [ State(~sid, 'S1', S, C, 'server', auth_status)
     ]
@@ -145,12 +148,14 @@ rule S_Send_Spontaneous:
     , !Exporters(ms, 'server', ~sid, hccc, hccs, fmc, fms)
     , !Ltk($A, ltkA)
     , DelegateLtk($S, ltkA)  
+    , Fr(~msg_id)
     ]
   --[ S_Send(~sid)
     , Owns(S, ms, 'server', <$A, ltkA>)
     , Instance(~sid, S, C, 'server')
-    , TLS_Sent(ms)
+    , TLS_Sent(ms, <Certificate_Spontaneous, CertificateVerify, Finished>)
+    , Signed(signature)
     ]->
     [ State(~sid, 'S1', S, C, 'server', auth_status)
-    , TLS_Send(~sid, S, C, <Certificate_Spontaneous, CertificateVerify, Finished>)
+    , TLS_Send(~msg_id, ~sid, S, C, <Certificate_Spontaneous, CertificateVerify, Finished>)
     ]

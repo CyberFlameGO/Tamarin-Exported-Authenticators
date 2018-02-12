@@ -13,14 +13,14 @@ rule Create_TLS_channel:
     ]
 
 rule Send_TLS_Channel_owner:
-    [ TLS_Send(nc, $C, $S, msg)
+    [ TLS_Send(msg_id, nc, $C, $S, msg)
     , !TLS_Channel(ms, TLS_transcript, state, $C, nc, $S, ns)
     ]
   -->
     [ TLS_Recv(ns, $C, $S, msg) ]
 
 rule Send_TLS_Channel_target:
-    [ TLS_Send(ns, $S, $C, msg)
+    [ TLS_Send(msg_id, ns, $S, $C, msg)
     , !TLS_Channel(ms, TLS_transcript, state, $C, nc, $S, ns)
     ]
   -->

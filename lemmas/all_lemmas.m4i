@@ -71,12 +71,32 @@ exists-trace
 !>)dnl
 define(<!lemma_send_recv!>,<!dnl
 lemma send_recv[reuse]:
-	"All ms #j. TLS_Recvd(ms)@j ==> Ex #i. TLS_Sent(ms)@i & #i < #j"
+	"All actor peer role tid ms msg #k. Instance(tid, actor, peer, role)@k & TLS_Recvd(ms, msg)@k ==> (Ex #i. (TLS_Sent(ms, msg)@i & #i < #k)) | (Ex #j. (Revms(ms, actor, peer)@j & #j < #k))"
 !>)dnl
 dnl
 define(<!lemma_good_start!>, <!dnl
 lemma good_start[SOURCES]:
   "All tid actor peer role #j. Instance(tid, actor, peer, role)@j ==> not(Ex actor2 peer2 role2 #i. StartI(tid, actor2, peer2, role2)@i)"
+!>)dnl
+dnl
+define(<!lemma_sig_source!>, <!dnl
+lemma signature_source[SOURCES]:
+  "All m ltk #i #k.  KU(ltk)@k & Signed(sign(m, ltk))@i ==> (Ex actor #j. RevLtk(ltk, actor)@j & (#j < #k))"
+!>)dnl
+dnl  
+define(<!lemma_crctxt_source!>,<!dnl
+lemma crc_ctxt_source[SOURCES]:
+  "All actor ms role cr_ctxt #k. RecvReq(actor, ms, role, cr_ctxt)@k ==> (Ex #i. KU(cr_ctxt)@i & #i <#k) | (Ex tid peer role2 #j. Requested( tid, peer, role2, cr_ctxt)@j & #j<#k & not(role=role2))"
+!>)dnl
+dnl
+define(<!lemma_ltk_source!>,<!dnl
+lemma ltk_source[SOURCES]:
+  "All actor peer ms role del ltkD #k. Recv(actor, peer, ms, role, <del, pk(ltkD)>)@k ==> Ex #i. Clean(ltkD)@i & (#i<#k)"
+!>)dnl
+dnl
+define(<!lemma_msg_source!>, <!dnl
+lemma msg_source[reuse]:
+  "All msg_id cid actor peer msg #i #j. TLS_Send(msg_id, cid, actor, peer, msg)@i & KU(msg)@j ==> (Ex ms #k. Revms(ms, actor, peer)@k | Revms(ms, peer, actor)@k)"
 !>)dnl
 dnl
 define(<!lemma_constant_peer!>, <!dnl
@@ -90,7 +110,7 @@ lemma req_before_fulfil[reuse]:
 !>)dnl
 dnl
 define(<!lemma_ku_crctxt!>,<!dnl
-lemma ku_crctxt[reuse]:
+lemma ku_crctxt:
   "All tid actor role certificate_request_context cert #i #j. Fulfil(tid, actor, role, certificate_request_context, cert)@j & KU(certificate_request_context)@i ==> #i < #j"
 !>)dnl
 dnl
@@ -113,7 +133,7 @@ lemma reachable_session_keys:
 dnl
 define(<!lemma_cert_ownership!>,<!dnl
 lemma cert_ownership[reuse]:
-  "All actor ms ltkD del role #k. Recv(actor, ms, role, <del, pk(ltkD)>)@k ==> (Ex peer role2 #i. Owns(peer, ms, role2, <del, ltkD>)@i & (#i<#k) & not(role=role2)) | (Ex #j. RevLtk(del)@j & (#j<#k))"
+  "All actor peer ms ltkD del role #k. Recv(actor, peer, ms, role, <del, pk(ltkD)>)@k ==> (Ex role2 #h. Owns(peer, ms, role2, <del, ltkD>)@h & (#h<#k) & not(role=role2)) | ((Ex #i. RevLtk(ltkD, del)@i & (#i<#k)) & (Ex #j. Revms(ms, actor, peer)@j & (#j < #k)))"
 !>)dnl
 dnl
 define(<!lemma_consistent_nonce!>,<!dnl
@@ -123,9 +143,33 @@ lemma consistent_nonce[reuse]:
 dnl
 define(<!lemma_cert_linking!>,<!dnl
 lemma cert_linking:
-  "All actor ms role ltkD del ltkD2 del2 #j #k. Recv(actor, ms, role, <del, pk(ltkD)>)@j & Recv(actor, ms, role, <del2, pk(ltkD2)>)@k 
-  ==> (Ex peer role2 #h #i. Owns(peer, ms, role2, <del, ltkD>)@h & (#h < #j) & Owns(peer, ms, role2, <del2, ltkD2>)@i & (#i < #k) & not(role=role2)) 
-    | (Ex #l. RevLtk(del)@l & (#l<#k))
-    | (Ex #l. RevLtk(del2)@l & (#l<#k))"
+  "All actor peer ms role ltkD del ltkD2 del2 #j #k. Recv(actor, peer, ms, role, <del, pk(ltkD)>)@j & Recv(actor, peer, ms, role, <del2, pk(ltkD2)>)@k 
+  ==> (Ex role2 #h #i. Owns(peer, ms, role2, <del, ltkD>)@h & (#h < #j) & Owns(peer, ms, role2, <del2, ltkD2>)@i & (#i < #k) & not(role=role2)) 
+    | (Ex #l. RevLtk(ltkD, del)@l & (#l<#k))
+    | (Ex #l. RevLtk(ltkD2, del2)@l & (#l<#k))"
+!>)dnl
+dnl
+define(<!lemma_compound_auth!>,<!dnl
+lemma compound_auth:
+  "All actor actor2 ms role role2 del ltkD del2 ltkD2 peer peer2 #i #j. 
+      Recv(actor , peer , ms, role , <del , pk(ltkD )>)@i 
+    & Recv(actor2, peer2, ms, role2, <del2, pk(ltkD2)>)@j 
+    & (#i < #j) 
+  ==> 
+    (Ex role3 role4 #d #e. 
+        Owns(peer, ms, role3, <del, ltkD>)@d 
+      & not(role=role3) 
+      & (#d < #i) 
+      & Owns(peer2, ms, role4, <del2, ltkD2>)@e 
+      & not(role2=role4) 
+      & (#e < #j)
+    ) |
+    (Ex actor3 peer3 #f #g #h. 
+        Revms(ms, actor3, peer3)@f 
+      & (#f < #i) 
+      & RevLtk(ltkD, del)@g 
+      & (#g < #i) 
+      & RevLtk(ltkD2, del2)@h 
+      & (#h < #j))"
 !>)dnl
 dnl

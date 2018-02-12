@@ -45,11 +45,6 @@ at_most_of(0, S_RecvReq, 1)
 at_most_of(0, S_Send, 1)
 at_most_of(1, S_Recv, 1)
 
-lemma exists_advs:
-exists-trace
-  "Ex iid actor peer #i. StartI(iid, actor, peer, 'server')@i"
-
-lemma_good_start
 
 lemma_C_send_RecvReq
 

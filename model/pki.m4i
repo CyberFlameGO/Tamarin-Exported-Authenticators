@@ -1,6 +1,6 @@
 rule Register_pk:
     [ Fr(~ltk) ]
-  -->
+  --[ Clean(~ltk)]->
     [ !Ltk($A, ~ltk), !Pk($A, pk(~ltk)), DelegateLtk($TP, ~ltk) ]
 
 
