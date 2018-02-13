@@ -5,7 +5,9 @@ rule Reveal_ltk:
 
 rule Reveal_ms:
     [ !TLS_Channel(ms, TLS_transcript, status, C, nc, S, ns)]
-  --[ Revms(ms, C, S) ]->
+  --[ Revms(ms, C, S) 
+    , Revms(ms, S, C)
+    ]->
     [ Out(<ms, TLS_transcript, status, nc, ns>) ]
 
 rule Adv_Send_TLS_owner:

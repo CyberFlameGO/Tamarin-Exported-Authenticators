@@ -26,7 +26,7 @@ lemma one_start_per_tid [reuse]:
 !>)dnl
 dnl
 define(<!lemma_uniq_tid!>, <!dnl
-lemma uniq_Start:
+lemma uniq_Start[reuse]:
   "All tid actor1 actor2 peer1 peer2 role1 role2 #i #j. Start(tid, actor1, peer1, role1)@i & Start(tid, actor2, peer2, role2)@j ==>  #i=#j & actor1=actor2 & peer1=peer2 & role1=role2"
 !>)dnl
 dnl
@@ -122,7 +122,7 @@ exists-trace
 dnl
 define(<!lemma_secret_session_keys!>,<!dnl
 lemma secret_session_keys:
-  "All ms transcript #i. SessionKey(ms, transcript)@i ==> not (Ex #j. K(ms)@j) & not (Ex #k. K(transcript)@k)"
+  "All ms transcript #j #k. SessionKey(ms, transcript)@j & KU(ms)@k ==> Ex actor peer #i. Revms(ms, actor, peer)@i & (#i < #k)"
 !>)dnl
 dnl
 define(<!lemma_reachable_session_keys!>,<!dnl
@@ -143,10 +143,21 @@ lemma consistent_nonce[reuse]:
 dnl
 define(<!lemma_cert_linking!>,<!dnl
 lemma cert_linking:
-  "All actor peer ms role ltkD del ltkD2 del2 #j #k. Recv(actor, peer, ms, role, <del, pk(ltkD)>)@j & Recv(actor, peer, ms, role, <del2, pk(ltkD2)>)@k 
-  ==> (Ex role2 #h #i. Owns(peer, ms, role2, <del, ltkD>)@h & (#h < #j) & Owns(peer, ms, role2, <del2, ltkD2>)@i & (#i < #k) & not(role=role2)) 
-    | (Ex #l. RevLtk(ltkD, del)@l & (#l<#k))
-    | (Ex #l. RevLtk(ltkD2, del2)@l & (#l<#k))"
+  "All actor actor2 ms role role2 ltkD del ltkD2 del2 peer peer2 #j #k. 
+      Recv(actor , peer , ms, role , <del , pk(ltkD )>)@j 
+    & Recv(actor2, peer2, ms, role2, <del2, pk(ltkD2)>)@k 
+    & (#j < #k)
+  ==> 
+     (Ex role3 role4 #h #i. 
+       Owns(peer, ms, role3, <del, ltkD>)@h 
+       & not (role = role3)
+       & (#h < #j) 
+       & Owns(peer2, ms, role4, <del2, ltkD2>)@i 
+       & not(role2 = role4)
+       & (#i < #k))
+  |  (Ex #g. 
+        Revms(ms, actor,peer)@g
+        & (#g < #k))"
 !>)dnl
 dnl
 define(<!lemma_compound_auth!>,<!dnl

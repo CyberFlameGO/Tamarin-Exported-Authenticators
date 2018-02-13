@@ -22,17 +22,16 @@ lemma_ku_extract
 
 lemma_ku_expand
 
+lemma_constant_peer
+
+lemma_consistent_nonce
+
 lemma_send_recv
 
 lemma_crctxt_source
 
 lemma_req_before_fulfil
 
-lemma_ku_crctxt
-
-lemma_constant_peer
-lemma_consistent_nonce
-lemma_reachable_session_keys
 lemma_secret_session_keys
 
 lemma_cert_ownership
