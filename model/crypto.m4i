@@ -7,7 +7,7 @@ dnl Usage: Derive_Secret(Secret, Label, HashValue)
 define(<!Derive_Secret!>, <!HKDF_Expand_Label($1, $2, <!$3!>)!>)
 define(<!HashValue!>, <!<h(TLS_transcript)>!>)
 define(<!exporter_master_secret!>, <!Derive_Secret(ms, 'TLS13exportermastersecret', <!<!HashValue!>!>)!>)
-define(<!Exporter!>,<!HKDF_Expand_Label(Derive_Secret(exporter_master_secret, $1,'empty'), 'exporter', h($2, L))!>)
+define(<!Exporter!>,<!HKDF_Expand_Label(Derive_Secret(exporter_master_secret, $1,'empty'), 'exporter', h($2), L)!>)
 define(<!Handshake_Context!>,<!Exporter('EXPORTER_$1authenticatorhandshakecontext', 'empty')!>)
 define(<!Finished_MAC!>,<!Exporter('EXPORTER_$1authenticatorfinishedkey', 'empty')!>)
 
