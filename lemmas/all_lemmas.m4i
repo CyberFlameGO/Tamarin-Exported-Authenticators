@@ -160,6 +160,29 @@ lemma cert_linking:
         & (#g < #k))"
 !>)dnl
 dnl
+define(<!lemma_unilateral_compound_auth!>,<!dnl
+lemma unilateral_compound_auth:
+  "All actor ms role del ltkD del2 ltkD2 peer #i #j. 
+      Recv(actor , peer , ms, role , <del , pk(ltkD )>)@i 
+    & Recv(actor, peer, ms, role, <del2, pk(ltkD2)>)@j 
+    & (#i < #j) 
+  ==> 
+    (Ex role2 #d #e. 
+        Owns(peer, ms, role2, <del, ltkD>)@d 
+      & not(role=role2) 
+      & (#d < #i) 
+      & Owns(peer, ms, role2, <del2, ltkD2>)@e 
+      & (#e < #j)
+    ) |
+    (Ex #f #g #h. 
+        Revms(ms, actor, peer)@f 
+      & (#f < #i) 
+      & RevLtk(ltkD, del)@g 
+      & (#g < #i) 
+      & RevLtk(ltkD2, del2)@h 
+      & (#h < #j))"
+!>)dnl
+dnl
 define(<!lemma_compound_auth!>,<!dnl
 lemma compound_auth:
   "All actor actor2 ms role role2 del ltkD del2 ltkD2 peer peer2 #i #j. 
