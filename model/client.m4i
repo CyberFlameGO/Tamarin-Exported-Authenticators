@@ -53,7 +53,7 @@ rule C_Request:
     certificate_request_context=~certificate_request_context
   in
     [ State(~cid, 'C1', C, S, 'client', auth_status)
-    , !TLS_Channel(ms, TLS_transcript, auth_status, $C, ~cid, $S, sid)
+    , !TLS_Channel(ms, TLS_transcript, channel_status, $C, ~cid, $S, sid)
     , Fr(~certificate_request_context)
     , Fr(~request_id)
     , Fr(~msg_id)

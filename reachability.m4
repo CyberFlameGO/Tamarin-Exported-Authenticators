@@ -18,6 +18,8 @@ include(adversary.m4i)dnl
 include(all_lemmas.m4i)dnl
 include(at_most_of.m4i)dnl
 
+lemma_crctxt_source
+
 lemma_pre_tid_invariant
 
 lemma_tid_invariant
@@ -35,15 +37,15 @@ lemma_start_self
 lemma_self_reference
 
 at_most_of(1, C0, 1)
-at_most_of(0, C_Req, 2)
-at_most_of(1, C_RecvReq, 1)
-at_most_of(1, C_Send, 1)
-at_most_of(0, C_Recv, 1) 
+at_most_of(2, C_Req, 2)
+at_most_of(0, C_RecvReq, 1)
+at_most_of(0, C_Send, 1)
+at_most_of(2, C_Recv, 1) 
 at_most_of(1, S0, 1)
-at_most_of(1, S_Req, 2)
-at_most_of(0, S_RecvReq, 1)
-at_most_of(0, S_Send, 1)
-at_most_of(1, S_Recv, 1)
+at_most_of(0, S_Req, 2)
+at_most_of(2, S_RecvReq, 1)
+at_most_of(2, S_Send, 1)
+at_most_of(0, S_Recv, 1)
 
 
 lemma_C_send_RecvReq

@@ -198,11 +198,9 @@ lemma compound_auth:
       & not(role2=role4) 
       & (#e < #j)
     ) |
-    (Ex actor3 peer3 #f #g #h. 
+    (Ex actor3 peer3 #f #h. 
         Revms(ms, actor3, peer3)@f 
-      & (#f < #i) 
-      & RevLtk(ltkD, del)@g 
-      & (#g < #i) 
+      & (#f < #j) 
       & RevLtk(ltkD2, del2)@h 
       & (#h < #j))"
 !>)dnl

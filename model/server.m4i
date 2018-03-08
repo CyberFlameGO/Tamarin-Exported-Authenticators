@@ -8,6 +8,7 @@ rule S_0:
     , !Ltk($S, ltkS)
     ]
   --[ PreStart(~sid, S, C, 'server')
+    , S0(~sid)
     ]->
     [ Create_TLS_Channel2(C, cid, S, ~sid, pk(ltkS))
     , State(~sid, 'S0', S, C, 'server', 'none')
@@ -51,7 +52,7 @@ rule S_Request:
     certificate_request_context=~certificate_request_context
   in
     [ State(~sid, 'S1', S, C, 'server', auth_status)
-    , !TLS_Channel(ms, TLS_transcript, auth_status, $C, cid, $S, ~sid)
+    , !TLS_Channel(ms, TLS_transcript, channel_status, $C, cid, $S, ~sid)
     , Fr(~certificate_request_context)
     , Fr(~request_id)
     , Fr(~msg_id)
