@@ -1,16 +1,43 @@
+dnl This file defines the cryptographic operations perfomed in draft-Sullivan.
+dnl The definitions are symbolic. 
+
+dnl Define hash.length as '32'. 
+dnl This is an arbitrary value and has no impact on the analysis.
 define(<!L!>, <!'32'!>)
+
+dnl Define an HKDF label.
 dnl Use this as HkdfLabel(Label, HashValue, Length)
 define(<!HkdfLabel!>, <!<$3, $1, $2>!> )
+
+dnl Define the expand function.
 dnl Usage: HKDF_Expand_Label(Secret, Label, HashValue)
 define(<!HKDF_Expand_Label!>, <!Expand($1, HkdfLabel($2, $3, L), L)!>)
+
+dnl Define the derive_secret function.
 dnl Usage: Derive_Secret(Secret, Label, HashValue)
 define(<!Derive_Secret!>, <!HKDF_Expand_Label($1, $2, <!$3!>)!>)
+
+dnl Abstract the hash value of the TLS handshake. 
+dnl Because draft-Sullivan is a post-handshake mechanism and thus doesn't affect the handshake transcript, this value is constant.
 define(<!HashValue!>, <!<h(TLS_transcript)>!>)
+
+dnl Define the TLS exporter interface.
 define(<!exporter_master_secret!>, <!Derive_Secret(ms, 'TLS13exportermastersecret', <!<!HashValue!>!>)!>)
+
+dnl Define draft-Sullivan exporters.
 define(<!Exporter!>,<!HKDF_Expand_Label(Derive_Secret(exporter_master_secret, $1,'empty'), 'exporter', h($2), L)!>)
+
+dnl Define the handshake context function.
 define(<!Handshake_Context!>,<!Exporter('EXPORTER_$1authenticatorhandshakecontext', 'empty')!>)
+
+dnl Define the Finished MAC function.
 define(<!Finished_MAC!>,<!Exporter('EXPORTER_$1authenticatorfinishedkey', 'empty')!>)
 
+dnl Define the string constants used in labelling draft-Sullivan CertificateVerifys. 
 define(<!sig_label!>, <!'ExportedAuthenticator'!>)
+
+dnl Define the signing operation.
 define(<!compute_signature!>, <!sign(signature_input($2), $1)!>)
+
+dnl Define the signature contents.
 define(<!signature_input!>, <!<sig_label, $1>!>)

@@ -1,3 +1,6 @@
+dnl This file brings together the entire model.
+dnl It can be used to include, exclude, or substitute various parts of the model cleanly. 
+
 include(crypto.m4i)dnl
 include(msgs.m4i)dnl
 include(adversary.m4i)dnl

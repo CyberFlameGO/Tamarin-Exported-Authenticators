@@ -1,87 +1,93 @@
 define(<!lemma_exists_Start!>,<!dnl
+//The start action is reachable.
 lemma exists_Start:
 exists-trace
   "Ex tid actor peer role #j. Start(tid, actor, peer, role)@j"
 !>)dnl
 dnl
 define(<!lemma_pre_tid_invariant!>, <!dnl
+//A start action is always preceeded by a prestart action.
 lemma pre_tid_invariant[reuse]:
   "All tid actor peer role #i. Start(tid, actor, peer, role)@i==>
     (Ex #j. PreStart(tid, actor, peer, role)@j & (#j < #i))"
 !>)dnl
 dnl
 define(<!lemma_tid_invariant!>, <!dnl
+//Every state an actor enters was preceeded by a start action with the same thread id.
 lemma tid_invariant [use_induction, reuse]:
   "All tid actor peer role #i. Instance(tid, actor, peer, role)@i==>
     (Ex #j. Start(tid, actor, peer, role)@j & (#j < #i))"
 !>)dnl
 dnl
 define(<!lemma_one_prestart_per_tid!>, <!dnl
+//For a given thread id the prestart action happens only once.
 lemma one_prestart_per_tid [reuse]:
   "All tid actor actor2 peer peer2 role role2 #i #j. PreStart(tid, actor, peer, role)@i & PreStart(tid, actor2, peer2, role2)@j ==> #i = #j"
 !>)dnl
 define(<!lemma_one_start_per_tid!>, <!dnl
+//For a given thread id the start action happens only once.
 lemma one_start_per_tid [reuse]:
   "All tid actor actor2 peer peer2 role role2 #i #j. Start(tid, actor, peer, role)@i & Start(tid, actor2, peer2, role2)@j ==>#i = #j"
 !>)dnl
 dnl
 define(<!lemma_uniq_tid!>, <!dnl
+//For a given thread id the actor, peer, and role in the start action are fixed.
 lemma uniq_Start[reuse]:
   "All tid actor1 actor2 peer1 peer2 role1 role2 #i #j. Start(tid, actor1, peer1, role1)@i & Start(tid, actor2, peer2, role2)@j ==>  #i=#j & actor1=actor2 & peer1=peer2 & role1=role2"
 !>)dnl
 dnl
 define(<!lemma_start_self!>, <!dnl
+//The start action is unreachable.
 lemma Start_Self[reuse]:
   "All tid actor role #i. Start(tid, actor, actor, role)@i ==> F"
 !>)dnl
 dnl
 define(<!lemma_ku_extract!>, <!dnl
+//Before the adversary knows Extract(a,b) she must know a and b.
 lemma ku_extract [reuse, use_induction]:
   "All a b #i. KU(Extract(a, b))@i ==> Ex #j #k. KU(a)@j & KU(b)@k & #j < #i & #k < #i"
 !>)dnl
 dnl
 define(<!lemma_ku_expand!>, <!dnl
+//Before the attacker knows Expand(secret, label, len) she must know secret.
 lemma ku_expand [reuse, use_induction]:
 "All secret label len #i. KU(Expand(secret, label, len))@i ==>
   (Ex #j. KU(secret)@j & #j < #i)"
 !>)dnl
 dnl
 define(<!lemma_self_reference!>, <!dnl
+//All states are unreachable.
 lemma Self_Reference[reuse]:
   "All tid actor role #i. Instance(tid, actor, actor, role)@i ==> F"
 !>)dnl
 define(<!lemma_C_send_RecvReq!>, <!dnl
+//A Client send must receive a request before sending a response.
 lemma C_Send_RecvReq[reuse, use_induction]:
   "All tid #i. C_Send(tid)@i ==> Ex #j. C_RecvReq(tid)@j & #j < #i"
 !>)dnl
 define(<!lemma_start_first!>, <!dnl
+//Start actions must preceed all instance actions.
+//This rule no longer holds.
 lemma StartFirst[reuse, use_induction]:
   "All tid actor peer role #i #j. Start(tid, actor, peer, role)@i & Instance(tid, actor, peer, role)@j ==> #i < #j"
 !>)dnl
 define(<!lemma_exists_state!>,<!dnl
+//The $1 state is reachable. 
 lemma exists_$1:
 exists-trace
   "Ex tid #j. $1(tid)@j"
 !>)dnl   
 dnl
 define(<!lemma_exists_CReq!>, <!dnl
+//The client request state is reachable.
 lemma exists_CReq:
 exists-trace
   "Ex tid #j ctxt. C_Req(tid, ctxt)@j"
 !>)dnl
 define(<!lemma_send_recv!>,<!dnl
+//If an actor receives a message then it was either sent by the peer, or the adversary knew the master secret before it was received.
 lemma send_recv[reuse]:
 	"All actor peer role tid ms msg #k. Instance(tid, actor, peer, role)@k & TLS_Recvd(ms, msg)@k ==> (Ex #i. (TLS_Sent(ms, msg)@i & #i < #k)) | (Ex #j. (Revms(ms, actor, peer)@j & #j < #k))"
-!>)dnl
-dnl
-define(<!lemma_good_start!>, <!dnl
-lemma good_start[SOURCES]:
-  "All tid actor peer role #j. Instance(tid, actor, peer, role)@j ==> not(Ex actor2 peer2 role2 #i. StartI(tid, actor2, peer2, role2)@i)"
-!>)dnl
-dnl
-define(<!lemma_sig_source!>, <!dnl
-lemma signature_source[SOURCES]:
-  "All m ltk #i #k.  KU(ltk)@k & Signed(sign(m, ltk))@i ==> (Ex actor #j. RevLtk(ltk, actor)@j & (#j < #k))"
 !>)dnl
 dnl  
 define(<!lemma_crctxt_source!>,<!dnl
@@ -89,59 +95,55 @@ lemma crc_ctxt_source[SOURCES]:
   "All actor ms role cr_ctxt #k. RecvReq(actor, ms, role, cr_ctxt)@k ==> (Ex #i. KU(cr_ctxt)@i & #i <#k) | (Ex tid peer role2 #j. Requested( tid, peer, role2, cr_ctxt)@j & #j<#k & not(role=role2))"
 !>)dnl
 dnl
-define(<!lemma_ltk_source!>,<!dnl
-lemma ltk_source[SOURCES]:
-  "All actor peer ms role del ltkD #k. Recv(actor, peer, ms, role, <del, pk(ltkD)>)@k ==> Ex #i. Clean(ltkD)@i & (#i<#k)"
-!>)dnl
-dnl
-define(<!lemma_msg_source!>, <!dnl
-lemma msg_source[reuse]:
-  "All msg_id cid actor peer msg #i #j. TLS_Send(msg_id, cid, actor, peer, msg)@i & KU(msg)@j ==> (Ex ms #k. Revms(ms, actor, peer)@k | Revms(ms, peer, actor)@k)"
-!>)dnl
-dnl
 define(<!lemma_constant_peer!>, <!dnl
+//For a given thread id, the actor, peer, and role never change.
 lemma constant_peer[reuse]:
-  "All tid actor actor2 peer peer2 role role2 #i #j. Instance(tid, actor, peer, role)@i & Start(tid, actor2, peer2, role2)@j ==> actor=actor2 & peer = peer2 & role=role2"
+  "All tid actor actor2 peer peer2 role role2 #i #j. Instance(tid, actor, peer, role)@i & Start(tid, actor2, peer2, role2)@j ==> actor=actor2 & peer=peer2 & role=role2"
 !>)dnl
 dnl
 define(<!lemma_req_before_fulfil!>,<!dnl
+//An actor will only fulfil requests made by the peer, unless the adversary 
+//knows the certificate_request_context before the request is fulfilled.
+//This lemma helps break out of loops where the adversary tries to use a 
+//certificate_request_context before she learns it.
 lemma req_before_fulfil[reuse]:
   "All tid actor role certificate_request_context cert #j. Fulfil(tid, actor, role, certificate_request_context, cert)@j==> (Ex tid2 actor2 role2 #i. Requested(tid2, actor2, role2, certificate_request_context)@i & #i < #j) | (Ex #i. KU(certificate_request_context)@i & #i < #j)"
 !>)dnl
 dnl
-define(<!lemma_ku_crctxt!>,<!dnl
-lemma ku_crctxt:
-  "All tid actor role certificate_request_context cert #i #j. Fulfil(tid, actor, role, certificate_request_context, cert)@j & KU(certificate_request_context)@i ==> #i < #j"
-!>)dnl
-dnl
 define(<!lemma_can_loop_state!>,<!dnl
+//The $1 state can be reached repeatedly.
 lemma can_loop_$1:
 exists-trace
   "Ex tid #j #k. $1(tid)@j & $1(tid)@k &  (#j < #k)"
 !>)dnl   
 dnl
 define(<!lemma_secret_session_keys!>,<!dnl
+//EAs don't leak the master secret or the session transcript, except by the Revms action.
 lemma secret_session_keys:
   "All ms transcript #j #k. SessionKey(ms, transcript)@j & KU(ms)@k ==> Ex actor peer #i. Revms(ms, actor, peer)@i & (#i < #k)"
 !>)dnl
 dnl
 define(<!lemma_reachable_session_keys!>,<!dnl
+//Session keys can be established. 
 lemma reachable_session_keys:
   exists-trace
   "Ex ms transcript #i. SessionKey(ms, transcript)@i"
 !>)dnl
 dnl
 define(<!lemma_cert_ownership!>,<!dnl
+//If an actor receives an EA then the peer generated it, or the adversary has compromised the channel and the EA's certificate.
 lemma cert_ownership[reuse]:
   "All actor peer ms ltkD del role #k. Recv(actor, peer, ms, role, <del, pk(ltkD)>)@k ==> (Ex role2 #h. Owns(peer, ms, role2, <del, ltkD>)@h & (#h<#k) & not(role=role2)) | ((Ex #i. RevLtk(ltkD, del)@i & (#i<#k)) & (Ex #j. Revms(ms, actor, peer)@j & (#j < #k)))"
 !>)dnl
 dnl
 define(<!lemma_consistent_nonce!>,<!dnl
+//For a given thread id, any two states of the protocol have the same actor, peer, and role.
 lemma consistent_nonce[reuse]:
   "All tid actor peer role actor2 peer2 role2 #i #j. Instance(tid, actor, peer, role)@i & Instance(tid, actor2, peer2, role2)@j ==> actor=actor2 & peer=peer2 & role=role2"
 !>)dnl
 dnl
 define(<!lemma_cert_linking!>,<!dnl
+//If two EAs are received on a given channel, then they were generated appropriately, or the adversary has compromised the TLS channel. 
 lemma cert_linking:
   "All actor actor2 ms role role2 ltkD del ltkD2 del2 peer peer2 #j #k. 
       Recv(actor , peer , ms, role , <del , pk(ltkD )>)@j 
@@ -160,30 +162,11 @@ lemma cert_linking:
         & (#g < #k))"
 !>)dnl
 dnl
-define(<!lemma_unilateral_compound_auth!>,<!dnl
-lemma unilateral_compound_auth:
-  "All actor ms role del ltkD del2 ltkD2 peer #i #j. 
-      Recv(actor , peer , ms, role , <del , pk(ltkD )>)@i 
-    & Recv(actor, peer, ms, role, <del2, pk(ltkD2)>)@j 
-    & (#i < #j) 
-  ==> 
-    (Ex role2 #d #e. 
-        Owns(peer, ms, role2, <del, ltkD>)@d 
-      & not(role=role2) 
-      & (#d < #i) 
-      & Owns(peer, ms, role2, <del2, ltkD2>)@e 
-      & (#e < #j)
-    ) |
-    (Ex #f #g #h. 
-        Revms(ms, actor, peer)@f 
-      & (#f < #i) 
-      & RevLtk(ltkD, del)@g 
-      & (#g < #i) 
-      & RevLtk(ltkD2, del2)@h 
-      & (#h < #j))"
-!>)dnl
-dnl
 define(<!lemma_compound_auth!>,<!dnl
+//If two EAs were received on the same channel, then either both of them were 
+//generated appropriately, or the adversary has compromised the TLS channel and 
+//the certificate of the second EA. 
+//This does not hold in draft 5 of draft-Sullivan. 
 lemma compound_auth:
   "All actor actor2 ms role role2 del ltkD del2 ltkD2 peer peer2 #i #j. 
       Recv(actor , peer , ms, role , <del , pk(ltkD )>)@i 

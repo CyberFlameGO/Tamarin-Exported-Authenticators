@@ -1,3 +1,8 @@
+dnl This file represents the TLS channel.
+
+//TLS channel rules
+
+//Construct a TLS channel based on a TLS handshake. 
 rule Create_TLS_channel:
     [ Fr(ms)
     , Fr(TLS_transcript) 
@@ -8,10 +13,11 @@ rule Create_TLS_channel:
     , Check_is_none(cert, status)
     ]->
     [ !TLS_Channel(ms, TLS_transcript, status, $C, nc, $S, ns)
-    , !Exporters(ms, 'server',  ns, Handshake_Context(client), Handshake_Context(server), Finished_MAC(client), Finished_MAC(server))
-    , !Exporters(ms, 'client', nc, Handshake_Context(client), Handshake_Context(server), Finished_MAC(client), Finished_MAC(server))
+    , !Exporters(ms, 'server',  ns, Handshake_Context(client), Handshake_Context(server), Finished_MAC(client), Finished_MAC(server)) //Compute all the keys used by draft-Sullivan for the Server.
+    , !Exporters(ms, 'client', nc, Handshake_Context(client), Handshake_Context(server), Finished_MAC(client), Finished_MAC(server)) //Compute all the keys used by draft-Sullivan for the Client.
     ]
 
+//Transport messages to the Client.
 rule Send_TLS_Channel_owner:
     [ TLS_Send(msg_id, nc, $C, $S, msg)
     , !TLS_Channel(ms, TLS_transcript, state, $C, nc, $S, ns)
@@ -19,6 +25,7 @@ rule Send_TLS_Channel_owner:
   -->
     [ TLS_Recv(ns, $C, $S, msg) ]
 
+//Transport messages to the Server.
 rule Send_TLS_Channel_target:
     [ TLS_Send(msg_id, ns, $S, $C, msg)
     , !TLS_Channel(ms, TLS_transcript, state, $C, nc, $S, ns)

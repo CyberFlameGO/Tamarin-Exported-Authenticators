@@ -1,9 +1,14 @@
+dnl This file represents the public-key infrastructure. 
+
+//PKI rules
+
+//Produce a new public key.
 rule Register_pk:
     [ Fr(~ltk) ]
   --[ Clean(~ltk) ]->
     [ !Ltk($A, ~ltk), !Pk($A, pk(~ltk)), DelegateLtk($TP, ~ltk) ]
 
-
+//Reveal the public key to the adversary. 
 rule Get_pk:
     [ !Pk(A, pubkey) ]
   --[ RevPk(pubkey) ]->

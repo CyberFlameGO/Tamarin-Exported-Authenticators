@@ -1,58 +1,74 @@
+dnl This file represents the Server. 
+dnl It has two sets of rules, an abstracted TLS handshake, and a model of draft-Sullivan.
+
+//Server rules
+
+//Abstracted TLS handshake
+//We assume the TLS handshake to be secure, because we are analysing the EA protocol.
+//For an analysis of the TLS handshake see [An Automated Analysis of TLS 1.3](https://tls13tamarin.github.io/TLS13Tamarin/).
+
+//Initiate the (abstracted) TLS handshake.
 rule S_0:
   let
     C=$C
     S=$S
   in
-    [ Create_TLS_Channel(C, cid, S)
+    [ Create_TLS_Channel(C, cid, S) //Receive the ClientHello.
     , Fr(~sid)
-    , !Ltk($S, ltkS)
+    , !Ltk($S, ltkS) //Acquire the Server's private key.
     ]
   --[ PreStart(~sid, S, C, 'server')
     , S0(~sid)
     ]->
-    [ Create_TLS_Channel2(C, cid, S, ~sid, pk(ltkS))
-    , State(~sid, 'S0', S, C, 'server', 'none')
+    [ Create_TLS_Channel2(C, cid, S, ~sid, pk(ltkS)) //Send the ServerHello.
+    , State(~sid, 'S0', S, C, 'server', 'none') //This fact will hold the state of the Server throughout the protocol.
     ]
 
+//Perform a unilateral handshake.
 rule S_1_uni:
   let
     C=$C
     S=$S
   in
-    [ Create_TLS_Channel3(C, cid, 'none', S,  ~sid, pk(ltkS))
+    [ Create_TLS_Channel3(C, cid, 'none', S,  ~sid, pk(ltkS)) //Receive the Client response, which is assumed to be secure.
     , State(~sid, 'S0', S, C, 'server', 'none')
     ]
   --[ Start(~sid, S, C, 'server')
     , S1(~sid)
     ]->
     [ State(~sid, 'S1', S, C, 'server', 'none')
-    , Create_TLS_Channel4(C, cid, 'none', S, ~sid, pk(ltkS), 'uni')
+    , Create_TLS_Channel4(C, cid, 'none', S, ~sid, pk(ltkS), 'uni') //Send the Server response, which is assumed to be secure.
     ]
 
+//Perform a bilateral handshake.
 rule S_1_bi:
   let
     C=$C
     S=$S
   in
-    [ Create_TLS_Channel3(C, cid, pk(ltkC),  S, ~sid, pk(ltkS))
+    [ Create_TLS_Channel3(C, cid, pk(ltkC),  S, ~sid, pk(ltkS)) //Receive the Client response, which is assumed to be secure.
     , State(~sid, 'S0', S, C, 'server', 'none')
-    , !Pk(C, pk(ltkC))
+    , !Pk(C, pk(ltkC)) //Acquire the Client's public key. 
     ]
   --[ Start(~sid, S, C, 'server')
     , S1(~sid)
     ]->
     [ State(~sid, 'S1', S, C, 'server', 'auth')
-    , Create_TLS_Channel4(C, cid, pk(ltkC), S, ~sid, pk(ltkS), 'bi')
+    , Create_TLS_Channel4(C, cid, pk(ltkC), S, ~sid, pk(ltkS), 'bi') //Send the Server response, which is assumed to be secure.
     ]
 
+
+//Once the TLS handshake is complete then we do not restrict the order in which EA flows can happen. 
+
+//Send a Server request, as per the request/response flow. 
 rule S_Request:
   let
     C=$C
     S=$S
-    certificate_request_context=~certificate_request_context
+    certificate_request_context=~certificate_request_context //The certificate_request_context is defined to be fresh.
   in
     [ State(~sid, 'S1', S, C, 'server', auth_status)
-    , !TLS_Channel(ms, TLS_transcript, channel_status, $C, cid, $S, ~sid)
+    , !TLS_Channel(ms, TLS_transcript, channel_status, $C, cid, $S, ~sid) //The TLS channel the Client and Server have established. 
     , Fr(~certificate_request_context)
     , Fr(~request_id)
     , Fr(~msg_id)
@@ -64,9 +80,10 @@ rule S_Request:
     ]->
     [ State(~sid, 'S1', S, C, 'server', auth_status)
     , TLS_Send(~msg_id, ~sid, S, C, CertificateRequest)
-    , PendingReqI(~request_id, ~sid, 'server', CertificateRequest)
+    , PendingReqI(~request_id, ~sid, 'server', CertificateRequest) //This fact represents the Server's memory of the request for which it is the Initiator.
     ]
 
+//Receive a Server request, as per the request/response flow. 
 rule S_RecvReq:
   let
     C=$C
@@ -74,7 +91,7 @@ rule S_RecvReq:
   in
     [ State(~sid, 'S1', S, C, 'server', auth_status)
     , TLS_Recv(~sid, C, S, CertificateRequest)
-    , !Exporters(ms, 'server', ~sid, hccc, hccs, fmc, fms)
+    , !Exporters(ms, 'server', ~sid, hccc, hccs, fmc, fms) //This fact represents all of the keys draft-Sullivan computes.
     , Fr(~request_id)
     ]
   --[ S_RecvReq(~sid)
@@ -83,22 +100,22 @@ rule S_RecvReq:
     , TLS_Recvd(ms, <CertificateRequest>)
     ]->
     [ State(~sid, 'S1', S, C, 'server', auth_status)
-    , PendingReqR(~request_id, ~sid, 'server', CertificateRequest)
+    , PendingReqR(~request_id, ~sid, 'server', CertificateRequest) //This fact represents the Server's memory of the request for which it is the Responder.
     ]
-
+//Send an EA, as per the request/response flow. 
 rule S_Send:
   let
     C=$C
     S=$S
     certificate=pk(ltkA)
-    signature=compute_signature(ltkA, h(hccs, CertificateRequest, certificate))
-    verify_data = hmac(fms, <hccs, CertificateRequest, Certificate, CertificateVerify>)
+    signature=compute_signature(ltkA, h(hccs, CertificateRequest, certificate)) //Compute the CertificateVerify.
+    verify_data = hmac(fms, <hccs, CertificateRequest, Certificate, CertificateVerify>) //Compute the Finished.
   in
     [ State(~sid, 'S1', S, C, 'server', auth_status)
     , PendingReqR(~request_id, ~sid, 'server', CertificateRequest)
     , !Exporters(ms, 'server', ~sid, hccc, hccs, fmc, fms)
     , !Ltk($A, ltkA)
-    , DelegateLtk($S, ltkA)  
+    , DelegateLtk($S, ltkA) //This fact binds the Server to the additional identity it has been assigned.
     , Fr(~msg_id)
     ]
   --[ S_Send(~sid)
@@ -112,13 +129,14 @@ rule S_Send:
     , TLS_Send(~msg_id, ~sid, S, C, <Certificate, CertificateVerify, Finished>)
     ]
 
+//Receive an EA, as per the request/response flow.
 rule S_Recv:
   let 
     C=$C
     S=$S
     certificate=pk(ltkA)
-    sig_msg=signature_input(h(hccc, CertificateRequest, certificate))
-    exp_verify_data = hmac(fmc, <hccc, CertificateRequest, Certificate, CertificateVerify>)
+    sig_msg=signature_input(h(hccc, CertificateRequest, certificate)) //Construct the expected CertificateVerify contents.
+    exp_verify_data = hmac(fmc, <hccc, CertificateRequest, Certificate, CertificateVerify>) //Compute the expected Finished.
   in
     [ State(~sid, 'S1', S, C, 'server', auth_status)
     , TLS_Recv(~sid, C, S, <Certificate, CertificateVerify, Finished>)
@@ -127,8 +145,8 @@ rule S_Recv:
     , !Pk($A, pk(ltkA))
     ]
   --[ S_Recv(~sid)
-    , Eq(verify(signature, sig_msg, pk(ltkA)), true)
-    , Eq(verify_data,exp_verify_data)
+    , Eq(verify(signature, sig_msg, pk(ltkA)), true) //Require the CertificateVerify to be a signature over the expected contents.
+    , Eq(verify_data,exp_verify_data) //Require the Finished to match the expected Finished. 
     , Recv(S, C, ms, 'server', <$A, pk(ltkA)>)
     , Fulfilled(~sid, S, 'server', certificate_request_context, <$A, pk(ltkA)>)
     , Instance(~sid, S, C, 'server')
@@ -137,18 +155,19 @@ rule S_Recv:
     [ State(~sid, 'S1', S, C, 'server', auth_status)
     ]
 
+//Receive an EA, as per the spontaneous flow.
 rule S_Send_Spontaneous:
   let
     C=$C
     S=$S
     certificate=pk(ltkA)
-    signature=compute_signature(ltkA, h(hccs, certificate))
-    verify_data = hmac(fms, <hccs, Certificate_Spontaneous, CertificateVerify>)
+    signature=compute_signature(ltkA, h(hccs, certificate)) //Compute the CertificateVerify.
+    verify_data = hmac(fms, <hccs, Certificate_Spontaneous, CertificateVerify>) //Compute the Finished. 
   in
     [ State(~sid, 'S1', S, C, 'server', auth_status)
     , !Exporters(ms, 'server', ~sid, hccc, hccs, fmc, fms)
     , !Ltk($A, ltkA)
-    , DelegateLtk($S, ltkA)  
+    , DelegateLtk($S, ltkA) //This fact binds the Server to the additional identity that it has been assigned. 
     , Fr(~msg_id)
     ]
   --[ S_Send(~sid)

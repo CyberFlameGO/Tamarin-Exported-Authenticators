@@ -1,3 +1,13 @@
+dnl This file represents the Client. 
+dnl It has two sets of rules, an abstracted TLS handshake, and a model of draft-Sullivan.
+
+//Client rules
+
+//Abstracted TLS handshake
+//We assume the TLS handshake to be secure, because we are analysing the EA protocol.
+//For an analysis of the TLS handshake see [An Automated Analysis of TLS 1.3](https://tls13tamarin.github.io/TLS13Tamarin/).
+
+//Initiate the (abstracted) TLS handshake.
 rule C_0:
   let
     C=$C
@@ -9,18 +19,19 @@ rule C_0:
     , C0(~cid)
     , Neq(C,S)
     ]->
-    [ State(~cid, 'C0', C, S, 'client', 'none')
-    , Create_TLS_Channel(C, ~cid, S)
+    [ State(~cid, 'C0', C, S, 'client', 'none') //This fact will hold the state of the Client throughout the protocol.
+    , Create_TLS_Channel(C, ~cid, S) //Send the ClientHello.
     ]
 
+//Perform a unilateral handshake.
 rule C_1_uni:
   let
     C=$C
     S=$S
   in
-    [ Create_TLS_Channel2(C, ~cid, S, sid, pk(ltkS))
+    [ Create_TLS_Channel2(C, ~cid, S, sid, pk(ltkS)) //Receive the ServerHello
     , State(~cid, 'C0', C, S, 'client', 'none')
-    , !Pk(S, pk(ltkS))
+    , !Pk(S, pk(ltkS)) //Acquire the Server's public key
     ]
   --[ C1(~cid)
     , Start(~cid, C, S, 'client')
@@ -29,31 +40,35 @@ rule C_1_uni:
     , Create_TLS_Channel3(C, ~cid, 'none', S, sid, pk(ltkS))
     ]
 
+//Perform a bilateral handshake.
 rule C_1_bi:
   let
     C=$C
     S=$S
   in
-    [ Create_TLS_Channel2(C, ~cid, S, sid, pk(ltkS))
+    [ Create_TLS_Channel2(C, ~cid, S, sid, pk(ltkS)) //Receive the ServerHello
     , State(~cid, 'C0', C, S, 'client', 'none')
-    , !Pk(S, pk(ltkS))
-    , !Ltk(C, ltkC)
+    , !Pk(S, pk(ltkS)) //Acquire the Server's public key
+    , !Ltk(C, ltkC) //Acquire the Client's private key
     ]
   --[ C1(~cid)
     , Start(~cid, C, S, 'client')
     ]->
     [ State(~cid, 'C1', C, S, 'client', 'auth')
-    , Create_TLS_Channel3(C, ~cid, pk(ltkC), S, sid, pk(ltkS))
+    , Create_TLS_Channel3(C, ~cid, pk(ltkC), S, sid, pk(ltkS)) //Send the Client response, which is assumed to be secure.
     ]
 
+//Once the TLS handshake is complete then we do not restrict the order in which EA flows can happen. 
+
+//Send a Client request, as per the request/response flow. 
 rule C_Request:
   let
     C=$C
     S=$S
-    certificate_request_context=~certificate_request_context
+    certificate_request_context=~certificate_request_context //The certificate_request_context is defined to be fresh.
   in
     [ State(~cid, 'C1', C, S, 'client', auth_status)
-    , !TLS_Channel(ms, TLS_transcript, channel_status, $C, ~cid, $S, sid)
+    , !TLS_Channel(ms, TLS_transcript, channel_status, $C, ~cid, $S, sid) //The TLS channel the Client and Server have established. 
     , Fr(~certificate_request_context)
     , Fr(~request_id)
     , Fr(~msg_id)
@@ -65,9 +80,10 @@ rule C_Request:
     ]->
     [ State(~cid, 'C1', C, S, 'client', auth_status)
     , TLS_Send(~msg_id, ~cid, C, S, CertificateRequest)
-    , PendingReqI(~request_id, ~cid, 'client', CertificateRequest)
+    , PendingReqI(~request_id, ~cid, 'client', CertificateRequest) //This fact represents the Client's memory of the request for which it is the Initiator. 
     ]
 
+//Receive a Server request, as per the reqeust/response flow.
 rule C_RecvReq:
   let
     C=$C
@@ -75,7 +91,7 @@ rule C_RecvReq:
   in
     [ State(~cid, 'C1', C, S, 'client', auth_status)
     , TLS_Recv(~cid, S, C, CertificateRequest)
-    , !Exporters(ms, 'client', ~cid, hccc, hccs, fmc, fms)
+    , !Exporters(ms, 'client', ~cid, hccc, hccs, fmc, fms) //This fact represents all of the keys draft-Sullivan computes.
     , Fr(~request_id)
     ]
   --[ C_RecvReq(~cid)
@@ -84,22 +100,23 @@ rule C_RecvReq:
     , TLS_Recvd(ms, <CertificateRequest>)
     ]->
     [ State(~cid, 'C1', C, S, 'client', auth_status)
-    , PendingReqR(~request_id, ~cid, 'client', CertificateRequest)
+    , PendingReqR(~request_id, ~cid, 'client', CertificateRequest) //This fact represents the Client's memory of the request for which it is the Responder. 
     ]
 
+//Send an EA, as per the request/response flow.
 rule C_Send:
   let
     C=$C
     S=$S
     certificate=pk(ltkA)
-    signature=compute_signature(ltkA, h(hccc, CertificateRequest, certificate))
-    verify_data = hmac(fmc, <hccc, CertificateRequest, Certificate, CertificateVerify>)
+    signature=compute_signature(ltkA, h(hccc, CertificateRequest, certificate)) //Compute the CertificateVerify.
+    verify_data = hmac(fmc, <hccc, CertificateRequest, Certificate, CertificateVerify>) //Compute the Finished.
   in
     [ State(~cid, 'C1', C, S, 'client', auth_status)
     , PendingReqR(~request_id, ~cid, 'client', CertificateRequest)
     , !Exporters(ms, 'client', ~cid, hccc, hccs, fmc, fms)
     , !Ltk($A, ltkA)
-    , DelegateLtk($C, ltkA)
+    , DelegateLtk($C, ltkA) //This fact binds the Client to the additional identity it has been assigned.
     , Fr(~msg_id)
     ]
   --[ C_Send(~cid)
@@ -113,13 +130,14 @@ rule C_Send:
     , TLS_Send(~msg_id, ~cid, C, S, <Certificate, CertificateVerify, Finished>) 
     ]
 
+//Receive an EA, as per the request/response flow.
 rule C_Recv:
   let 
     C=$C
     S=$S
     certificate=pk(ltkA)
-    sig_msg=signature_input(h(hccs, CertificateRequest, certificate))
-    exp_verify_data = hmac(fms, <hccs, CertificateRequest, Certificate, CertificateVerify>)
+    sig_msg=signature_input(h(hccs, CertificateRequest, certificate)) //Construct the expected CertificateVerify contents.
+    exp_verify_data = hmac(fms, <hccs, CertificateRequest, Certificate, CertificateVerify>) //Compute the expected Finished.
   in
     [ State(~cid, 'C1', C, S, 'client', auth_status)
     , TLS_Recv(~cid, S, C, <Certificate, CertificateVerify, Finished>)
@@ -128,8 +146,8 @@ rule C_Recv:
     , !Pk($A, pk(ltkA))
     ]
   --[ C_Recv(~cid)
-    , Eq(verify(signature, sig_msg, pk(ltkA)), true)
-    , Eq(verify_data, exp_verify_data)
+    , Eq(verify(signature, sig_msg, pk(ltkA)), true) //Require the CertificateVerify to be a signature over the expected contents.
+    , Eq(verify_data, exp_verify_data) //Require the Finished to match the expected Finished.
     , Recv(C, S, ms, 'client',  <$A, pk(ltkA)>)
     , Fulfilled(~cid, C, 'client', certificate_request_context, <$A, pk(ltkA)>)
     , Instance(~cid, C, S, 'client')
@@ -138,13 +156,14 @@ rule C_Recv:
     [ State(~cid, 'C1', C, S, 'client', auth_status)
     ]
 
+//Receive an EA, as per the spontaneous flow.
 rule C_Recv_Spontaneous:
   let 
     C=$C
     S=$S
     certificate=pk(ltkA)
-    sig_msg=signature_input(h(hccs, certificate))
-    exp_verify_data = hmac(fms, <hccs, Certificate_Spontaneous, CertificateVerify>)
+    sig_msg=signature_input(h(hccs, certificate)) //Construct the expected CertificateVerify contents.
+    exp_verify_data = hmac(fms, <hccs, Certificate_Spontaneous, CertificateVerify>) //Compute the expected Finished.
   in
     [ State(~cid, 'C1', C, S, 'client', auth_status)
     , TLS_Recv(~cid, S, C, <Certificate_Spontaneous, CertificateVerify, Finished>)
@@ -152,8 +171,8 @@ rule C_Recv_Spontaneous:
     , !Pk($A, pk(ltkA))
     ]
   --[ C_Recv(~cid)
-    , Eq(verify(signature, sig_msg, pk(ltkA)), true)
-    , Eq(verify_data, exp_verify_data)
+    , Eq(verify(signature, sig_msg, pk(ltkA)), true) //Require the CertificateVerify to be a signature over the expected contents.
+    , Eq(verify_data, exp_verify_data) //Require the Finished to match the expected Finished.
     , Recv(C, S, ms, 'client',  <$A, pk(ltkA)>)
     , Instance(~cid, C, S, 'client')
     , TLS_Recvd(ms, <Certificate_Spontaneous, CertificateVerify, Finished>)

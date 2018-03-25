@@ -38,7 +38,5 @@ lemma_cert_ownership
 
 lemma_cert_linking
 
-lemma_unilateral_compound_auth
-
 lemma_compound_auth
 end

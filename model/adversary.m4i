@@ -1,8 +1,16 @@
+dnl This file represents the adversary. 
+dnl The adversary can compromise long-term keys and master secrets. 
+dnl She can also intercept messages for which she knows the keys. 
+
+//Adversary rules
+
+//Reveal a long-term key.
 rule Reveal_ltk:
     [ !Ltk(A, ltk) ]
   --[ RevLtk(ltk, A) ]->
     [ Out(ltk) ]
 
+//Reveal a master secret.
 rule Reveal_ms:
     [ !TLS_Channel(ms, TLS_transcript, status, C, nc, S, ns)]
   --[ Revms(ms, C, S) 
@@ -10,6 +18,10 @@ rule Reveal_ms:
     ]->
     [ Out(<ms, TLS_transcript, status, nc, ns>) ]
 
+//Messages sent by the adversary are marked with '0' by Tamarin. 
+//This ignores the case where the adversary sends herself messages. 
+
+//Send a message to the client.
 rule Adv_Send_TLS_owner:
     [ In(<ms, m>)
     , !TLS_Channel(ms, TLS_transcript, auth_status, $C, cid, $S, sid)
@@ -17,8 +29,9 @@ rule Adv_Send_TLS_owner:
   --[ A_Send(cid)
 dnl    , TLS_Sent(ms)
     ]->
-    [ TLS_Send('0', cid, $C, $S, m) ]
+    [ TLS_Send('0', cid, $C, $S, m) ] //Mark a message sent by the adversary with '0'.
 
+//Send a message to the server.
 rule Adv_Send_TLS_target:
     [ In(<ms, m>)
     , !TLS_Channel(ms, TLS_transcript, auth_status, $C, cid, $S, sid)
@@ -26,8 +39,9 @@ rule Adv_Send_TLS_target:
   --[ A_Send(sid) 
 dnl    , TLS_Sent(ms)
     ]->
-    [ TLS_Send('0', sid, $S, $C, m) ]
+    [ TLS_Send('0', sid, $S, $C, m) ] //Mark a message sent by the adversary with '0'.
 
+//Receive a message from the client.
 rule Adv_Recv_TLS_owner:
     [ TLS_Send(msg_id, nc, $C, $S, msg)
     , !TLS_Channel(ms, TLS_transcript, state, $C, nc, $S, ns)
@@ -35,10 +49,11 @@ rule Adv_Recv_TLS_owner:
     ]
   --[ A_Recv(nc) 
 dnl    , TLS_Recvd(ms)
-    , Neq(msg_id, '0')
+    , Neq(msg_id, '0') //Don't receive a message sent by the adversary.
     ]->
     [ Out(<$C, $S, msg>) ] 
 
+//Receive a message from the server.
 rule Adv_Recv_TLS_target:
     [ TLS_Send(msg_id, ns, $S, $C, msg)
     , !TLS_Channel(ms, TLS_transcript, state, $C, nc, $S, ns)
@@ -46,7 +61,7 @@ rule Adv_Recv_TLS_target:
     ]
   --[ A_Recv(ns) 
 dnl    , TLS_Recvd(ms)
-    , Neq(msg_id, '0')
+    , Neq(msg_id, '0') //Don't receive a message sent by the adversary.
     ]->
     [ Out(<$S, $C, msg>) ] 
 
