@@ -9,14 +9,6 @@ This project requires the [Tamarin prover](https://tamarin-prover.github.io/), w
 We also make use of m4, and make.
 
 ###Getting Started
-Copy `tamarin-version.m4i.new` to `tamarin-version.m4i`. 
-
-    cp tamarin-version.m4i.new tamarin-version.m4i
-    
-If you are using an older version of Tamarin you may have to use `tamarin-version.m4i.old`.
-
-    cp tamarin-version.m4i.old tamarin-version.m4i
-    
 To build the project run `make`.
 
     make
@@ -25,11 +17,16 @@ Because of the complex structure of the model if you make changes to the model y
 
     make clean ; make
 
+If you are running a version of Tamarin older that 1.2.0 then you need to run :
+
+    make axiom ; make
+
+This will rewrite the model into the older format.
 ###Proofs
 
-To verify the proofs run Tamarin on the full proof file, `proofs/full_proof.spthy`. 
+To verify the proofs run Tamarin on the full proof file, `proofs/all_lemmas.spthy`. 
 
-    tamarin-prover proofs/full_proof.spthy
+    tamarin-prover proofs/all_lemmas.spthy
 
 This may take a long time and consume a lot of resources. 
 
@@ -44,6 +41,11 @@ To explore the model without checking the proofs run:
     tamarin-prover interactive .
     
 The Tamarin prover will start an interactive instance at `localhost:3001`. 
+
+The Tamarin version used to produce the proofs was:
+
+    tamarin-prover 1.3.1, (C) David Basin, Cas Cremers, Jannik Dreier, Simon Meier, Ralf Sasse, Benedikt Schmidt, ETH Zurich 2010-2017
+    Git revision: 120c7e706f3e1d4646b233faf2bc9936834ed9d3, branch: develop
 
 ###Authors
 * Jonathan Hoyland
